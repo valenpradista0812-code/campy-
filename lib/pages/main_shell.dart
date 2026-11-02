@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import '../theme.dart';
+import '../theme/app_colors.dart';
 import 'home_page.dart';
 import 'explore_page.dart';
 import 'cart_page.dart';
+import 'profile_page.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -18,7 +19,7 @@ class _MainShellState extends State<MainShell> {
     HomePage(),
     ExplorePage(),
     CartPage(),
-    Center(child: Text('Profile')),
+    ProfilePage(),
   ];
 
   @override

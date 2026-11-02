@@ -135,3 +135,61 @@ class _AppTextFieldState extends State<AppTextField> {
     );
   }
 }
+
+class SearchField extends StatelessWidget {
+  const SearchField({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      decoration: InputDecoration(
+        hintText: 'Search products...',
+        prefixIcon: const Icon(Icons.search),
+        filled: true,
+        fillColor: AppColors.fieldBg,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+      ),
+    );
+  }
+}
+
+class ProductImage extends StatelessWidget {
+  final String? asset;
+  final IconData fallback;
+  final double size;
+
+  const ProductImage({
+    super.key,
+    this.asset,
+    required this.fallback,
+    this.size = 64,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (asset != null && asset!.isNotEmpty) {
+      return Image.asset(
+        asset!,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) {
+          return Icon(fallback, size: size);
+        },
+      );
+    }
+
+    return Icon(
+      fallback,
+      size: size,
+      color: AppColors.primary,
+    );
+  }
+}

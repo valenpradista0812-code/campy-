@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data.dart';
-import '../theme.dart';
-import '../widgets/common.dart';
+import '../theme/app_colors.dart';
+import '../widgets/common_widgets.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -11,7 +11,7 @@ class HomePage extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
-        const Center(child: CampyLogo()),
+        const Center(child: CampyLogo(color: AppColors.primary, size: 48)),
         const SizedBox(height: 12),
         const SearchField(),
         const SizedBox(height: 16),
@@ -81,9 +81,9 @@ class _OfferCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('\$${(product.price / 1000).toStringAsFixed(2)}',
+              Text(rupiah(product.price),
                   style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w700)),
+                      fontSize: 11, fontWeight: FontWeight.w700)),
               InkWell(
                 onTap: () {
                   final items = [...cartNotifier.value];

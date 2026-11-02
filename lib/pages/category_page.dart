@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data.dart';
-import '../theme.dart';
-import '../widgets/common.dart';
+import '../theme/app_colors.dart';
+import '../widgets/common_widgets.dart';
 
 /// One reusable page for: Shelter & Sleeping, Camp Kitchen & Cooking,
 /// Lightning & Power, and Apparel.
@@ -32,25 +32,64 @@ class CategoryPage extends StatelessWidget {
         ),
         itemBuilder: (_, i) {
           final p = items[i];
-          return Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child:
-                        ProductImage(asset: p.asset, fallback: p.icon, size: 64),
+          return InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () {
+              final cart = [...cartNotifier.value];
+              final idx = cart.indexWhere((e) => e.product.name == p.name);
+              if (idx >= 0) {
+                cart[idx].qty++;
+              } else {
+                cart.add(CartItem(p, 1, p.price));
+              }
+              cartNotifier.value = cart;
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${p.name} added to cart'),
+                  duration: const Duration(milliseconds: 1200),
+                ),
+              );
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child:
+                          ProductImage(asset: p.asset, fallback: p.icon, size: 54),
+                    ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Text(p.name, style: const TextStyle(fontSize: 9)),
-                ),
-              ],
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      p.name,
+                      style: const TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      rupiah(p.price),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },

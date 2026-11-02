@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data.dart';
-import '../theme.dart';
-import '../widgets/common.dart';
+import '../theme/app_colors.dart';
+import '../widgets/common_widgets.dart';
 import 'category_page.dart';
 
 class ExplorePage extends StatelessWidget {

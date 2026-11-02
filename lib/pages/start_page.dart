@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common_widgets.dart';
-import 'onboarding_page.dart';
+import 'terms_policy_page.dart';
 
 class StartPage extends StatefulWidget {
   const StartPage({super.key});
@@ -20,7 +20,7 @@ class _StartPageState extends State<StartPage> {
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           transitionDuration: const Duration(milliseconds: 500),
-          pageBuilder: (_, __, ___) => const OnboardingPage(),
+          pageBuilder: (_, __, ___) => const TermsAcceptancePage(),
           transitionsBuilder: (_, anim, __, child) =>
               FadeTransition(opacity: anim, child: child),
         ),

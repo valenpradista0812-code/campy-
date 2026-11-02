@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../data.dart';
-import '../theme.dart';
-import '../widgets/common.dart';
+import '../theme/app_colors.dart';
+import '../widgets/common_widgets.dart';
+import 'checkout_page.dart';
 
 class CartPage extends StatelessWidget {
   const CartPage({super.key});
@@ -38,23 +39,36 @@ class CartPage extends StatelessWidget {
             },
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
-          child: SizedBox(
-            width: double.infinity,
-            height: 40,
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
+        ValueListenableBuilder<List<CartItem>>(
+          valueListenable: cartNotifier,
+          builder: (context, items, _) {
+            final hasItems = items.isNotEmpty;
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+              child: SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: ElevatedButton(
+                  onPressed: hasItems
+                      ? () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const CheckoutPage()),
+                          )
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: AppColors.border,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('Go to Checkout',
+                      style:
+                          TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                ),
               ),
-              child: const Text('Go to Checkout',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-            ),
-          ),
+            );
+          },
         ),
       ],
     );

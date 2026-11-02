@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common_widgets.dart';
+import 'forgot_password_page.dart';
 import 'main_shell.dart';
 import 'signup_page.dart';
-import 'home_page.dart';
-import 'home_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -34,9 +33,6 @@ class _LoginPageState extends State<LoginPage> {
     // Navigate to main shell after login
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const MainShell()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Login berhasil (dummy)')),
     );
   }
 
@@ -78,7 +74,10 @@ class _LoginPageState extends State<LoginPage> {
                 Align(
                   alignment: Alignment.center,
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const ForgotPasswordPage()),
+                    ),
                     child: const Text('Forgot Password?',
                         style: TextStyle(
                             fontSize: 11, color: AppColors.primary)),

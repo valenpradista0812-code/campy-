@@ -8,4 +8,8 @@ class AppColors {
   static const Color textDark = Color(0xFF2B2B2B);
   static const Color textGrey = Color(0xFF8A8A8A);
   static const Color lightGreen = Color(0xFFE3EBDF);
+  static const Color muted = Color(0xFF8A8A8A);       // alias textGrey
+  static const Color border = Color(0xFFE0E0E0);      // border kartu/tile
+  static const Color imageBg = Color(0xFFF0F4EF);     // latar ikon produk
+  static const Color accent = Color(0xFF7A9376);       // alias primary untuk tombol +
 }
