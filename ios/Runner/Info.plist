@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Campy membutuhkan akses galeri untuk memilih gambar barang.</string>
 </dict>
 </plist>

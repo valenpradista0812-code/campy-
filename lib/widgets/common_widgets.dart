@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/app_colors.dart';
 
 /// Logo Campy dari assets/images/logo.png (PNG transparan warna krem).
@@ -75,6 +76,8 @@ class AppTextField extends StatefulWidget {
   final bool isPassword;
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
+  final List<TextInputFormatter>? inputFormatters;
+  final IconData? trailingIcon;
 
   const AppTextField({
     super.key,
@@ -84,6 +87,8 @@ class AppTextField extends StatefulWidget {
     this.isPassword = false,
     this.keyboardType = TextInputType.text,
     this.validator,
+    this.inputFormatters,
+    this.trailingIcon,
   });
 
   @override
@@ -106,6 +111,7 @@ class _AppTextFieldState extends State<AppTextField> {
           obscureText: widget.isPassword && _obscure,
           keyboardType: widget.keyboardType,
           validator: widget.validator,
+          inputFormatters: widget.inputFormatters,
           style: const TextStyle(fontSize: 14),
           decoration: InputDecoration(
             hintText: widget.hint,
@@ -120,7 +126,10 @@ class _AppTextFieldState extends State<AppTextField> {
                         size: 18),
                     onPressed: () => setState(() => _obscure = !_obscure),
                   )
-                : null,
+                : (widget.trailingIcon != null
+                    ? Icon(widget.trailingIcon,
+                        size: 18, color: AppColors.textGrey)
+                    : null),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide.none,
@@ -137,13 +146,17 @@ class _AppTextFieldState extends State<AppTextField> {
 }
 
 class SearchField extends StatelessWidget {
-  const SearchField({super.key});
+  final String hint;
+  final ValueChanged<String>? onChanged;
+  const SearchField(
+      {super.key, this.hint = 'Search products...', this.onChanged});
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      onChanged: onChanged,
       decoration: InputDecoration(
-        hintText: 'Search products...',
+        hintText: hint,
         prefixIcon: const Icon(Icons.search),
         filled: true,
         fillColor: AppColors.fieldBg,

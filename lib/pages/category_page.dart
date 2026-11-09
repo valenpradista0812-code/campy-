@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../data.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common_widgets.dart';
+import 'product_detail_page.dart';
 
 /// One reusable page for: Shelter & Sleeping, Camp Kitchen & Cooking,
 /// Lightning & Power, and Apparel.
@@ -34,23 +35,11 @@ class CategoryPage extends StatelessWidget {
           final p = items[i];
           return InkWell(
             borderRadius: BorderRadius.circular(10),
-            onTap: () {
-              final cart = [...cartNotifier.value];
-              final idx = cart.indexWhere((e) => e.product.name == p.name);
-              if (idx >= 0) {
-                cart[idx].qty++;
-              } else {
-                cart.add(CartItem(p, 1, p.price));
-              }
-              cartNotifier.value = cart;
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${p.name} added to cart'),
-                  duration: const Duration(milliseconds: 1200),
-                ),
-              );
-            },
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ProductDetailPage(product: p),
+              ),
+            ),
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),

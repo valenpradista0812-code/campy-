@@ -3,6 +3,8 @@ import '../theme/app_colors.dart';
 import '../widgets/common_widgets.dart';
 import 'forgot_password_page.dart';
 import 'main_shell.dart';
+import 'admins/admin_login_page.dart';
+import 'petugas/petugas_login_page.dart';
 import 'signup_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -91,6 +93,33 @@ class _LoginPageState extends State<LoginPage> {
                   onPressed: () => Navigator.of(context).pushReplacement(
                     MaterialPageRoute(builder: (_) => const SignUpPage()),
                   ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                            builder: (_) => const AdminLoginPage()),
+                      ),
+                      child: const Text('Login as Admin',
+                          style: TextStyle(
+                              fontSize: 11, color: AppColors.primary)),
+                    ),
+                    const Text('|',
+                        style:
+                            TextStyle(fontSize: 11, color: AppColors.muted)),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                            builder: (_) => const PetugasLoginPage()),
+                      ),
+                      child: const Text('Login as Petugas',
+                          style: TextStyle(
+                              fontSize: 11, color: AppColors.primary)),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
               ],
