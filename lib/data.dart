@@ -7,6 +7,8 @@ class Product {
   final int price;
   final String? asset;
   final IconData icon;
+  final String description;
+  final int stock;
 
   const Product({
     required this.name,
@@ -14,6 +16,8 @@ class Product {
     required this.price,
     this.asset,
     required this.icon,
+    this.description = 'No description available.',
+    this.stock = 0,
   });
 }
 
@@ -35,91 +39,136 @@ String rupiah(int value) {
   )}';
 }
 
+// ─── Product catalogue ────────────────────────────────────────────────────────
+
+const Product _campingTent = Product(
+  name: 'Camping Tent',
+  sub: '2 Person Tent',
+  price: 150000,
+  icon: Icons.cabin,
+  stock: 8,
+  description:
+      'Lightweight dome tent for two people. Waterproof flysheet, double '
+      'layer ventilation and a quick-pitch frame that sets up in minutes. '
+      'Comes with pegs, guy ropes and a carry bag.',
+);
+
+const Product _familyTent = Product(
+  name: 'Family Tent',
+  sub: '4 Person Tent',
+  price: 250000,
+  icon: Icons.house,
+  stock: 5,
+  description:
+      'Spacious tent for up to four people with a separate sleeping area and '
+      'a covered vestibule for your gear. Tall ceiling, mesh windows and a '
+      'sturdy fibreglass frame for stable camping.',
+);
+
+const Product _sleepingBag = Product(
+  name: 'Sleeping Bag',
+  sub: 'Outdoor Sleeping',
+  price: 75000,
+  icon: Icons.bed,
+  stock: 12,
+  description:
+      'Warm and soft mummy-style sleeping bag suitable for mountain and '
+      'lowland camping. Zipper on both sides, hooded design and compact '
+      'enough to fit in a backpack.',
+);
+
+const Product _portableStove = Product(
+  name: 'Portable Stove',
+  sub: 'Camping Stove',
+  price: 50000,
+  icon: Icons.local_fire_department,
+  stock: 10,
+  description:
+      'Compact single-burner gas stove with adjustable flame and a stable '
+      'folding stand. Perfect for boiling water and quick trail meals. '
+      'Gas canister not included.',
+);
+
+const Product _cookingSet = Product(
+  name: 'Cooking Set',
+  sub: 'Outdoor Cooking',
+  price: 65000,
+  icon: Icons.soup_kitchen,
+  stock: 7,
+  description:
+      'Nesting cookware set with two pots, a pan, a lid and utensils. '
+      'Made from lightweight aluminium with heat-resistant handles, and '
+      'packs together into a single carry pouch.',
+);
+
+const Product _campingLantern = Product(
+  name: 'Camping Lantern',
+  sub: 'LED Lantern',
+  price: 35000,
+  icon: Icons.lightbulb,
+  stock: 15,
+  description:
+      'Bright rechargeable LED lantern with three brightness modes. Hangs '
+      'from the tent ceiling or stands on a table, and lasts up to 12 hours '
+      'on a full charge.',
+);
+
+const Product _flashlight = Product(
+  name: 'Flashlight',
+  sub: 'Portable Light',
+  price: 20000,
+  icon: Icons.flashlight_on,
+  stock: 20,
+  description:
+      'Pocket-sized, water-resistant flashlight with a focused beam for '
+      'night walks and trail use. Durable aluminium body with a wrist strap.',
+);
+
+const Product _hikingBackpack = Product(
+  name: 'Hiking Backpack',
+  sub: 'Outdoor Backpack',
+  price: 80000,
+  icon: Icons.backpack,
+  stock: 6,
+  description:
+      'Comfortable 40L hiking backpack with padded shoulder straps, chest '
+      'and hip belts, a rain cover and multiple compartments to keep your '
+      'gear organised.',
+);
+
+const Product _hikingJacket = Product(
+  name: 'Hiking Jacket',
+  sub: 'Outdoor Apparel',
+  price: 60000,
+  icon: Icons.checkroom,
+  stock: 9,
+  description:
+      'Windproof and water-repellent jacket that stays light and breathable '
+      'on the trail. Adjustable hood and cuffs, with zipped pockets for '
+      'small essentials.',
+);
+
 // Special Offers
-const List<Product> specialOffers = [
-  Product(
-    name: 'Camping Tent',
-    sub: '2 Person Tent',
-    price: 150000,
-    icon: Icons.cabin,
-  ),
-  Product(
-    name: 'Sleeping Bag',
-    sub: 'Outdoor Sleeping',
-    price: 75000,
-    icon: Icons.bed,
-  ),
-];
+const List<Product> specialOffers = [_campingTent, _sleepingBag];
 
 // Shelter & Sleeping
-const List<Product> shelterItems = [
-  Product(
-    name: 'Camping Tent',
-    sub: '2 Person Tent',
-    price: 150000,
-    icon: Icons.cabin,
-  ),
-  Product(
-    name: 'Family Tent',
-    sub: '4 Person Tent',
-    price: 250000,
-    icon: Icons.house,
-  ),
-  Product(
-    name: 'Sleeping Bag',
-    sub: 'Outdoor Sleeping',
-    price: 75000,
-    icon: Icons.bed,
-  ),
-];
+const List<Product> shelterItems = [_campingTent, _familyTent, _sleepingBag];
 
 // Camp Kitchen & Cooking
-const List<Product> kitchenItems = [
-  Product(
-    name: 'Portable Stove',
-    sub: 'Camping Stove',
-    price: 50000,
-    icon: Icons.local_fire_department,
-  ),
-  Product(
-    name: 'Cooking Set',
-    sub: 'Outdoor Cooking',
-    price: 65000,
-    icon: Icons.soup_kitchen,
-  ),
-];
+const List<Product> kitchenItems = [_portableStove, _cookingSet];
 
 // Lighting & Power
-const List<Product> lightingItems = [
-  Product(
-    name: 'Camping Lantern',
-    sub: 'LED Lantern',
-    price: 35000,
-    icon: Icons.lightbulb,
-  ),
-  Product(
-    name: 'Flashlight',
-    sub: 'Portable Light',
-    price: 20000,
-    icon: Icons.flashlight_on,
-  ),
-];
+const List<Product> lightingItems = [_campingLantern, _flashlight];
 
 // Apparel & Personal Gear
-const List<Product> apparelItems = [
-  Product(
-    name: 'Hiking Backpack',
-    sub: 'Outdoor Backpack',
-    price: 80000,
-    icon: Icons.backpack,
-  ),
-  Product(
-    name: 'Hiking Jacket',
-    sub: 'Outdoor Apparel',
-    price: 60000,
-    icon: Icons.checkroom,
-  ),
-];
+const List<Product> apparelItems = [_hikingBackpack, _hikingJacket];
+
+/// Number of units of [product] currently in the cart.
+int cartQtyOf(Product product) {
+  final idx =
+      cartNotifier.value.indexWhere((e) => e.product.name == product.name);
+  return idx >= 0 ? cartNotifier.value[idx].qty : 0;
+}
 
 List<Product> get allProducts {
   final map = <String, Product>{};

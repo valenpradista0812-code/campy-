@@ -46,31 +46,79 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   void _addToCart() {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+
+    final p = widget.product;
     final items = [...cartNotifier.value];
-    final idx =
-        items.indexWhere((e) => e.product.name == widget.product.name);
+    final idx = items.indexWhere((e) => e.product.name == p.name);
+    final inCart = idx >= 0 ? items[idx].qty : 0;
+
+    if (p.stock <= 0) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Produk habis (Out of stock)'),
+          duration: Duration(milliseconds: 1200),
+        ),
+      );
+      return;
+    }
+
+    if (inCart + _qty > p.stock) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Stok tidak mencukupi (Tersisa: ${p.stock}, di cart: $inCart)'),
+          duration: const Duration(milliseconds: 1200),
+        ),
+      );
+      return;
+    }
+
     if (idx >= 0) {
       items[idx].qty += _qty;
     } else {
-      items.add(CartItem(widget.product, _qty, widget.product.price));
+      items.add(CartItem(p, _qty, p.price));
     }
     cartNotifier.value = items;
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(
-        content: Text('${widget.product.name} ($_qty items) added to cart'),
+        content: Text('${p.name} ($_qty items) added to cart'),
         duration: const Duration(seconds: 1),
       ),
     );
   }
 
   void _rentNow() {
+    final messenger = ScaffoldMessenger.of(context);
+    final p = widget.product;
     final items = [...cartNotifier.value];
-    final idx =
-        items.indexWhere((e) => e.product.name == widget.product.name);
+    final idx = items.indexWhere((e) => e.product.name == p.name);
+    final inCart = idx >= 0 ? items[idx].qty : 0;
+
+    if (p.stock <= 0) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Produk habis (Out of stock)'),
+          duration: Duration(milliseconds: 1200),
+        ),
+      );
+      return;
+    }
+
+    if (inCart + _qty > p.stock) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Stok tidak mencukupi (Tersisa: ${p.stock})'),
+          duration: const Duration(milliseconds: 1200),
+        ),
+      );
+      return;
+    }
+
     if (idx >= 0) {
       items[idx].qty += _qty;
     } else {
-      items.add(CartItem(widget.product, _qty, widget.product.price));
+      items.add(CartItem(p, _qty, p.price));
     }
     cartNotifier.value = items;
     Navigator.of(context).push(
@@ -82,6 +130,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   Widget build(BuildContext context) {
     final p = widget.product;
     final totalPrice = p.price * _qty * _days;
+    final isSoldOut = p.stock <= 0;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -171,7 +220,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 ),
                 const SizedBox(height: 12),
 
-                // ── Rating & Badge ─────────────────────────────────────────
+                // ── Rating & Badge & Stock ─────────────────────────────────
                 Row(
                   children: [
                     Container(
@@ -182,8 +231,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(color: Colors.amber.shade200),
                       ),
-                      child: Row(
-                        children: const [
+                      child: const Row(
+                        children: [
                           Icon(Icons.star, size: 14, color: Colors.amber),
                           SizedBox(width: 4),
                           Text('4.9',
@@ -196,7 +245,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
+                    _StockBadge(stock: p.stock),
+                    const Spacer(),
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
@@ -209,7 +260,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           Icon(Icons.verified_outlined,
                               size: 13, color: AppColors.primary),
                           SizedBox(width: 4),
-                          Text('Sanitized & Ready',
+                          Text('Sanitized',
                               style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
@@ -258,7 +309,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                         fontWeight: FontWeight.w700)),
                                 IconButton(
                                   icon: const Icon(Icons.add, size: 16),
-                                  onPressed: () => setState(() => _qty++),
+                                  onPressed: (!isSoldOut && _qty < p.stock)
+                                      ? () => setState(() => _qty++)
+                                      : null,
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(
                                       minWidth: 32, minHeight: 32),
@@ -324,10 +377,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     style:
                         TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 10),
-                Wrap(
+                const Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: const [
+                  children: [
                     _FeatureChip(Icons.shield_outlined, 'Waterproof 3000mm'),
                     _FeatureChip(Icons.nature_people_outlined, 'Wind Resistant'),
                     _FeatureChip(Icons.cleaning_services_outlined, 'Pre-Cleaned'),
@@ -342,7 +395,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 6),
                 Text(
-                  'Premium quality ${p.name.toLowerCase()} suitable for hiking, camping, and outdoor exploration. Lightweight, durable, and crafted to provide optimal comfort and protection under various outdoor conditions. Every rental item is thoroughly inspected and sanitized before dispatch.',
+                  p.description.isNotEmpty
+                      ? p.description
+                      : 'Premium quality ${p.name.toLowerCase()} suitable for hiking, camping, and outdoor exploration. Lightweight, durable, and crafted to provide optimal comfort and protection under various outdoor conditions. Every rental item is thoroughly inspected and sanitized before dispatch.',
                   style: const TextStyle(
                       fontSize: 11, height: 1.5, color: AppColors.muted),
                 ),
@@ -389,32 +444,35 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: _addToCart,
+                    onPressed: isSoldOut ? null : _addToCart,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primary,
                       side: const BorderSide(color: AppColors.primary),
+                      disabledForegroundColor: AppColors.muted,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text('Add to Cart',
-                        style: TextStyle(
+                    child: Text(isSoldOut ? 'Sold Out' : 'Add to Cart',
+                        style: const TextStyle(
                             fontSize: 11, fontWeight: FontWeight.w600)),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: _rentNow,
+                    onPressed: isSoldOut ? null : _rentNow,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
+                      disabledBackgroundColor: AppColors.border,
+                      disabledForegroundColor: AppColors.muted,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text('Rent Now',
-                        style: TextStyle(
+                    child: Text(isSoldOut ? 'Unavailable' : 'Rent Now',
+                        style: const TextStyle(
                             fontSize: 11, fontWeight: FontWeight.w600)),
                   ),
                 ),
@@ -422,6 +480,31 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _StockBadge extends StatelessWidget {
+  final int stock;
+  const _StockBadge({required this.stock});
+
+  @override
+  Widget build(BuildContext context) {
+    final available = stock > 0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: available ? AppColors.lightGreen : const Color(0xFFFBE4E4),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        available ? 'Stock: $stock' : 'Out of stock',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: available ? AppColors.primaryDark : const Color(0xFFB3261E),
+        ),
       ),
     );
   }
@@ -477,4 +560,3 @@ class _ChecklistRow extends StatelessWidget {
     );
   }
 }
-

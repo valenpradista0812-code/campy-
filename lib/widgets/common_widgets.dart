@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../pages/search_page.dart';
 import '../theme/app_colors.dart';
 
@@ -76,6 +77,8 @@ class AppTextField extends StatefulWidget {
   final bool isPassword;
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
+  final List<TextInputFormatter>? inputFormatters;
+  final IconData? trailingIcon;
 
   const AppTextField({
     super.key,
@@ -85,6 +88,8 @@ class AppTextField extends StatefulWidget {
     this.isPassword = false,
     this.keyboardType = TextInputType.text,
     this.validator,
+    this.inputFormatters,
+    this.trailingIcon,
   });
 
   @override
@@ -107,6 +112,7 @@ class _AppTextFieldState extends State<AppTextField> {
           obscureText: widget.isPassword && _obscure,
           keyboardType: widget.keyboardType,
           validator: widget.validator,
+          inputFormatters: widget.inputFormatters,
           style: const TextStyle(fontSize: 14),
           decoration: InputDecoration(
             hintText: widget.hint,
@@ -121,7 +127,10 @@ class _AppTextFieldState extends State<AppTextField> {
                         size: 18),
                     onPressed: () => setState(() => _obscure = !_obscure),
                   )
-                : null,
+                : (widget.trailingIcon != null
+                    ? Icon(widget.trailingIcon,
+                        size: 18, color: AppColors.textGrey)
+                    : null),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide.none,
@@ -138,40 +147,72 @@ class _AppTextFieldState extends State<AppTextField> {
 }
 
 class SearchField extends StatelessWidget {
-  final bool readOnly;
+  final String hint;
+  final ValueChanged<String>? onChanged;
+  final bool? readOnly;
   final VoidCallback? onTap;
-  const SearchField({super.key, this.readOnly = true, this.onTap});
+
+  const SearchField({
+    super.key,
+    this.hint = 'Search products...',
+    this.onChanged,
+    this.readOnly,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap ??
-          () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SearchPage()),
-            );
-          },
-      borderRadius: BorderRadius.circular(8),
-      child: IgnorePointer(
-        ignoring: readOnly,
-        child: TextField(
-          readOnly: readOnly,
-          decoration: InputDecoration(
-            hintText: 'Search products...',
-            hintStyle:
-                const TextStyle(fontSize: 12, color: AppColors.muted),
-            prefixIcon: const Icon(Icons.search, size: 20),
-            filled: true,
-            fillColor: AppColors.fieldBg,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none,
+    final isReadOnly = readOnly ?? (onChanged == null);
+
+    if (isReadOnly) {
+      return InkWell(
+        onTap: onTap ??
+            () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SearchPage()),
+              );
+            },
+        borderRadius: BorderRadius.circular(8),
+        child: IgnorePointer(
+          ignoring: true,
+          child: TextField(
+            readOnly: true,
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle:
+                  const TextStyle(fontSize: 12, color: AppColors.muted),
+              prefixIcon: const Icon(Icons.search, size: 20),
+              filled: true,
+              fillColor: AppColors.fieldBg,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
+        ),
+      );
+    }
+
+    return TextField(
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(fontSize: 12, color: AppColors.muted),
+        prefixIcon: const Icon(Icons.search),
+        filled: true,
+        fillColor: AppColors.fieldBg,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
         ),
       ),
     );
