@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common_widgets.dart';
 import 'forgot_password_page.dart';
@@ -24,13 +25,36 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _login() {
+  void _login() async {
     if (!_formKey.currentState!.validate()) return;
-    // TODO: panggil API / Firebase Auth di sini
+
+    final isOnline = await ApiService.isBackendConnected();
+    if (isOnline) {
+      final res = await ApiService.login(
+        _emailC.text.trim(),
+        _passC.text.trim(),
+      );
+      if (!mounted) return;
+      if (res['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Login berhasil via Supabase Backend!')),
+        );
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const MainShell()),
+        );
+        return;
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(res['message'] ?? 'Login gagal')),
+        );
+        return;
+      }
+    }
+
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Login berhasil (dummy)')),
+      const SnackBar(content: Text('Login berhasil (Mode Demo)')),
     );
-    // Navigate to main shell after login
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const MainShell()),
     );

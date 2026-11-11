@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../data.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common_widgets.dart';
+import 'order_detail_page.dart';
 
 class OrdersPage extends StatelessWidget {
   const OrdersPage({super.key});
@@ -38,8 +39,15 @@ class _OrderTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isActive = order.status == 'active';
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+    return InkWell(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => OrderDetailPage(order: order),
+        ),
+      ),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
@@ -111,6 +119,7 @@ class _OrderTile extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

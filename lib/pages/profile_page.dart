@@ -8,6 +8,8 @@ import 'notifications_page.dart';
 import 'help_page.dart';
 import 'about_page.dart';
 import 'terms_policy_page.dart';
+import 'wishlist_page.dart';
+import 'login_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -59,6 +61,12 @@ class ProfilePage extends StatelessWidget {
               MaterialPageRoute(builder: (_) => const MyDetailsPage())),
         ),
         _MenuItem(
+          icon: Icons.favorite_border,
+          label: 'Wishlist & Saved Items',
+          onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const WishlistPage())),
+        ),
+        _MenuItem(
           icon: Icons.history,
           label: 'History Transaction',
           onTap: () => Navigator.of(context).push(
@@ -94,6 +102,59 @@ class ProfilePage extends StatelessWidget {
           onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const TermsPolicyViewPage())),
         ),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red, size: 20),
+            title: const Text('Log Out',
+                style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+              side: BorderSide(color: Colors.red.shade100),
+            ),
+            tileColor: Colors.red.shade50.withValues(alpha: 0.5),
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Log Out',
+                      style: TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w700)),
+                  content: const Text(
+                      'Are you sure you want to log out from Campy?',
+                      style: TextStyle(fontSize: 12)),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('Cancel',
+                          style: TextStyle(color: AppColors.muted)),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                              builder: (_) => const LoginPage()),
+                          (route) => false,
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Log Out'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 24),
       ],
     );
   }

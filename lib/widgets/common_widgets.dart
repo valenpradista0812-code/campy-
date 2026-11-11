@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../pages/search_page.dart';
 import '../theme/app_colors.dart';
 
 /// Logo Campy dari assets/images/logo.png (PNG transparan warna krem).
@@ -137,23 +138,40 @@ class _AppTextFieldState extends State<AppTextField> {
 }
 
 class SearchField extends StatelessWidget {
-  const SearchField({super.key});
+  final bool readOnly;
+  final VoidCallback? onTap;
+  const SearchField({super.key, this.readOnly = true, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      decoration: InputDecoration(
-        hintText: 'Search products...',
-        prefixIcon: const Icon(Icons.search),
-        filled: true,
-        fillColor: AppColors.fieldBg,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
+    return InkWell(
+      onTap: onTap ??
+          () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SearchPage()),
+            );
+          },
+      borderRadius: BorderRadius.circular(8),
+      child: IgnorePointer(
+        ignoring: readOnly,
+        child: TextField(
+          readOnly: readOnly,
+          decoration: InputDecoration(
+            hintText: 'Search products...',
+            hintStyle:
+                const TextStyle(fontSize: 12, color: AppColors.muted),
+            prefixIcon: const Icon(Icons.search, size: 20),
+            filled: true,
+            fillColor: AppColors.fieldBg,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
+            ),
+          ),
         ),
       ),
     );

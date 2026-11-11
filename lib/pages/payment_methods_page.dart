@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import 'add_payment_method_page.dart';
 
 class PaymentMethodsPage extends StatelessWidget {
   const PaymentMethodsPage({super.key});
@@ -35,7 +36,11 @@ class PaymentMethodsPage extends StatelessWidget {
               subtitle: '+62 812-3456-7890',
               color: const Color(0xFF108EE9)),
           TextButton.icon(
-            onPressed: () {},
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const AddPaymentMethodPage(),
+              ),
+            ),
             icon: const Icon(Icons.add, size: 16, color: AppColors.primary),
             label: const Text('Add New Payment Method',
                 style: TextStyle(fontSize: 12, color: AppColors.primary)),

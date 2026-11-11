@@ -1,17 +1,36 @@
 import 'package:flutter/material.dart';
 import '../data.dart';
+import '../services/api_service.dart';
 import '../theme/app_colors.dart';
 import 'main_shell.dart';
 import 'payment_page.dart';
 
-class TransactionResultPage extends StatelessWidget {
+class TransactionResultPage extends StatefulWidget {
   final bool success;
   final int total;
   const TransactionResultPage(
       {super.key, required this.success, required this.total});
 
   @override
+  State<TransactionResultPage> createState() => _TransactionResultPageState();
+}
+
+class _TransactionResultPageState extends State<TransactionResultPage> {
+  @override
+  void initState() {
+    super.initState();
+    ApiService.createTransaction(
+      orderId: '#ORD-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
+      amount: widget.total,
+      paymentMethod: 'BCA',
+      isSuccess: widget.success,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final success = widget.success;
+    final total = widget.total;
     final color = success ? Colors.green : Colors.red;
 
     return Scaffold(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common_widgets.dart';
 import 'login_page.dart';
@@ -26,11 +27,45 @@ class _SignUpPageState extends State<SignUpPage> {
     super.dispose();
   }
 
-  void _register() {
+  void _register() async {
     if (!_formKey.currentState!.validate()) return;
-    // TODO: panggil API / Firebase Auth di sini
+
+    final isOnline = await ApiService.isBackendConnected();
+    if (isOnline) {
+      final res = await ApiService.register(
+        email: _emailC.text.trim(),
+        password: _passC.text.trim(),
+        name: _nameC.text.trim(),
+        phone: _phoneC.text.trim(),
+      );
+      if (!mounted) return;
+      if (res['success'] == true) {
+        final needsConfirm = res['requiresEmailConfirmation'] == true;
+        final message = res['message'] as String? ??
+            (needsConfirm
+                ? 'Registrasi berhasil! Cek email Anda untuk konfirmasi sebelum login.'
+                : 'Registrasi berhasil! Silakan login.');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            duration: Duration(seconds: needsConfirm ? 6 : 3),
+          ),
+        );
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+        );
+        return;
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(res['message'] ?? 'Registrasi gagal')),
+        );
+        return;
+      }
+    }
+
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Registrasi berhasil (dummy)')),
+      const SnackBar(content: Text('Registrasi berhasil (Mode Demo)')),
     );
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const LoginPage()),

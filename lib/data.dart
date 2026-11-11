@@ -121,6 +121,26 @@ const List<Product> apparelItems = [
   ),
 ];
 
+List<Product> get allProducts {
+  final map = <String, Product>{};
+  for (final p in [
+    ...specialOffers,
+    ...shelterItems,
+    ...kitchenItems,
+    ...lightingItems,
+    ...apparelItems,
+  ]) {
+    map[p.name] = p;
+  }
+  return map.values.toList();
+}
+
+final ValueNotifier<List<Product>> wishlistNotifier =
+    ValueNotifier<List<Product>>([
+  shelterItems[1],
+  lightingItems[0],
+]);
+
 // ─── Transaction & Order models ───────────────────────────────────────────────
 
 class AppTransaction {
