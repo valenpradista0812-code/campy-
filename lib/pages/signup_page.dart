@@ -17,6 +17,7 @@ class _SignUpPageState extends State<SignUpPage> {
   final _emailC = TextEditingController();
   final _phoneC = TextEditingController();
   final _passC = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -30,46 +31,59 @@ class _SignUpPageState extends State<SignUpPage> {
   void _register() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final isOnline = await ApiService.isBackendConnected();
-    if (isOnline) {
-      final res = await ApiService.register(
-        email: _emailC.text.trim(),
-        password: _passC.text.trim(),
-        name: _nameC.text.trim(),
-        phone: _phoneC.text.trim(),
-      );
+    setState(() => _isLoading = true);
+
+    try {
+      final isOnline = await ApiService.isBackendConnected();
+      if (isOnline) {
+        final res = await ApiService.register(
+          email: _emailC.text.trim(),
+          password: _passC.text.trim(),
+          name: _nameC.text.trim(),
+          phone: _phoneC.text.trim(),
+        );
+        if (!mounted) return;
+        if (res['success'] == true) {
+          final needsConfirm = res['requiresEmailConfirmation'] == true;
+          final message = res['message'] as String? ??
+              (needsConfirm
+                  ? 'Registrasi berhasil! Cek email Anda untuk konfirmasi sebelum login.'
+                  : 'Registrasi berhasil! Silakan login.');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              duration: Duration(seconds: needsConfirm ? 6 : 3),
+            ),
+          );
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const LoginPage()),
+          );
+          return;
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(res['message'] ?? 'Registrasi gagal')),
+          );
+          return;
+        }
+      }
+
       if (!mounted) return;
-      if (res['success'] == true) {
-        final needsConfirm = res['requiresEmailConfirmation'] == true;
-        final message = res['message'] as String? ??
-            (needsConfirm
-                ? 'Registrasi berhasil! Cek email Anda untuk konfirmasi sebelum login.'
-                : 'Registrasi berhasil! Silakan login.');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            duration: Duration(seconds: needsConfirm ? 6 : 3),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '⚠️ Backend offline (${ApiService.baseUrl}). Masuk Mode Demo — data tidak tersimpan di database.',
           ),
-        );
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginPage()),
-        );
-        return;
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(res['message'] ?? 'Registrasi gagal')),
-        );
-        return;
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Registrasi berhasil (Mode Demo)')),
-    );
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const LoginPage()),
-    );
   }
 
   @override
@@ -126,7 +140,11 @@ class _SignUpPageState extends State<SignUpPage> {
                       : null,
                 ),
                 const SizedBox(height: 28),
-                PrimaryButton(text: 'Register', onPressed: _register),
+                PrimaryButton(
+                  text: 'Register',
+                  isLoading: _isLoading,
+                  onPressed: _register,
+                ),
                 const SizedBox(height: 12),
                 OutlineButton(
                   text: 'Log In',

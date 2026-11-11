@@ -19,6 +19,7 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailC = TextEditingController();
   final _passC = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -30,36 +31,49 @@ class _LoginPageState extends State<LoginPage> {
   void _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final isOnline = await ApiService.isBackendConnected();
-    if (isOnline) {
-      final res = await ApiService.login(
-        _emailC.text.trim(),
-        _passC.text.trim(),
-      );
+    setState(() => _isLoading = true);
+
+    try {
+      final isOnline = await ApiService.isBackendConnected();
+      if (isOnline) {
+        final res = await ApiService.login(
+          _emailC.text.trim(),
+          _passC.text.trim(),
+        );
+        if (!mounted) return;
+        if (res['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Login berhasil via Supabase Backend!')),
+          );
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const MainShell()),
+          );
+          return;
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(res['message'] ?? 'Login gagal')),
+          );
+          return;
+        }
+      }
+
       if (!mounted) return;
-      if (res['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login berhasil via Supabase Backend!')),
-        );
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainShell()),
-        );
-        return;
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(res['message'] ?? 'Login gagal')),
-        );
-        return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '⚠️ Backend offline (${ApiService.baseUrl}). Masuk Mode Demo.',
+          ),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainShell()),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Login berhasil (Mode Demo)')),
-    );
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const MainShell()),
-    );
   }
 
   @override
@@ -110,7 +124,11 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                PrimaryButton(text: 'Log In', onPressed: _login),
+                PrimaryButton(
+                  text: 'Log In',
+                  isLoading: _isLoading,
+                  onPressed: _login,
+                ),
                 const SizedBox(height: 12),
                 OutlineButton(
                   text: 'Register',
