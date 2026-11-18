@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../pages/login_page.dart';
+import '../pages/start_page.dart';
+import '../services/api_service.dart';
 import '../staff_data.dart';
 import '../theme/app_colors.dart';
 import 'common_widgets.dart';
@@ -67,10 +69,18 @@ class StaffBottomBar extends StatelessWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.add, color: Colors.white, size: 28),
-                            Text(centerLabel,
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 8)),
+                            const Icon(
+                              Icons.add,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                            Text(
+                              centerLabel,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 8,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -116,11 +126,14 @@ class _NavItem extends StatelessWidget {
         children: [
           Icon(icon, size: 20, color: color),
           const SizedBox(height: 2),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                  color: color)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+              color: color,
+            ),
+          ),
         ],
       ),
     );
@@ -131,15 +144,21 @@ class _NavItem extends StatelessWidget {
 class StaffLoginForm extends StatefulWidget {
   final String roleLabel;
   final String emailHint;
-  final bool Function(String email, String password) verify;
   final WidgetBuilder destination;
+
+  /// Widget halaman register yang dapat dibuka dari form login (opsional).
+  final Widget? registerPage;
+
+  /// Label teks link ke halaman register (opsional).
+  final String? registerLabel;
 
   const StaffLoginForm({
     super.key,
     required this.roleLabel,
     required this.emailHint,
-    required this.verify,
     required this.destination,
+    this.registerPage,
+    this.registerLabel,
   });
 
   @override
@@ -150,6 +169,7 @@ class _StaffLoginFormState extends State<StaffLoginForm> {
   final _formKey = GlobalKey<FormState>();
   final _emailC = TextEditingController();
   final _passC = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -158,19 +178,40 @@ class _StaffLoginFormState extends State<StaffLoginForm> {
     super.dispose();
   }
 
-  void _login() {
+  void _login() async {
     if (!_formKey.currentState!.validate()) return;
-    if (!widget.verify(_emailC.text, _passC.text)) {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email atau password salah')),
+    setState(() => _isLoading = true);
+
+    try {
+      final roleKey = widget.roleLabel.toLowerCase();
+      final res = await ApiService.staffLogin(
+        email: _emailC.text.trim(),
+        password: _passC.text.trim(),
+        role: roleKey,
       );
-      return;
+
+      if (!mounted) return;
+
+      if (res['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Login ${widget.roleLabel} berhasil!')),
+        );
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: widget.destination),
+          (route) => false,
+        );
+      } else {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res['message'] ?? 'Email atau password salah'),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: widget.destination),
-      (route) => false,
-    );
   }
 
   @override
@@ -196,11 +237,14 @@ class _StaffLoginFormState extends State<StaffLoginForm> {
                 const SizedBox(height: 24),
                 const CampyLogo(color: AppColors.primary, size: 64),
                 const SizedBox(height: 12),
-                Text('Login ${widget.roleLabel}',
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primaryDark)),
+                Text(
+                  'Login ${widget.roleLabel}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primaryDark,
+                  ),
+                ),
                 const SizedBox(height: 32),
                 AppTextField(
                   label: 'Email',
@@ -225,8 +269,61 @@ class _StaffLoginFormState extends State<StaffLoginForm> {
                       (v == null || v.isEmpty) ? 'Password wajib diisi' : null,
                 ),
                 const SizedBox(height: 28),
-                PrimaryButton(text: 'Log In', onPressed: _login),
-                const SizedBox(height: 24),
+                PrimaryButton(
+                  text: 'Log In',
+                  isLoading: _isLoading,
+                  onPressed: _login,
+                ),
+                const SizedBox(height: 20),
+
+                // ── Link Register (opsional) ──────────────────────────────
+                if (widget.registerPage != null) ...[
+                  Row(
+                    children: [
+                      const Expanded(child: Divider(color: AppColors.border)),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 10),
+                        child: Text(
+                          'atau',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.muted,
+                          ),
+                        ),
+                      ),
+                      const Expanded(child: Divider(color: AppColors.border)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => widget.registerPage!,
+                      ),
+                    ),
+                    child: Center(
+                      child: RichText(
+                        text: TextSpan(
+                          text: 'Belum punya akun? ',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.muted,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: widget.registerLabel ?? 'Daftar di sini',
+                              style: const TextStyle(
+                                color: AppColors.primaryDark,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 28),
               ],
             ),
           ),
@@ -261,12 +358,15 @@ class StaffProfileView extends StatelessWidget {
             child: const Icon(Icons.person, size: 52, color: AppColors.primary),
           ),
           const SizedBox(height: 14),
-          Text(name,
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          Text(
+            ApiService.currentUserName ?? name,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 4),
-          Text(email,
-              style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+          Text(
+            ApiService.currentUserEmail ?? email,
+            style: const TextStyle(fontSize: 12, color: AppColors.muted),
+          ),
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -274,19 +374,27 @@ class StaffProfileView extends StatelessWidget {
               color: AppColors.lightGreen,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Text(role,
-                style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primaryDark)),
+            child: Text(
+              role,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryDark,
+              ),
+            ),
           ),
           const Spacer(),
           OutlineButton(
             text: 'Logout',
-            onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const LoginPage()),
-              (route) => false,
-            ),
+            onPressed: () async {
+              await ApiService.logout();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const StartPage()),
+                  (route) => false,
+                );
+              }
+            },
           ),
         ],
       ),
@@ -294,7 +402,7 @@ class StaffProfileView extends StatelessWidget {
   }
 }
 
-/// Gambar barang: foto yang diunggah petugas, atau ikon kalau belum ada.
+/// Gambar barang: foto yang diunggah petugas, atau tautan gambar, atau ikon.
 class StockImage extends StatelessWidget {
   final StockItem item;
   final double size;
@@ -304,8 +412,36 @@ class StockImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final bytes = item.imageBytes;
     if (bytes != null) {
-      return Image.memory(bytes,
-          width: size, height: size, fit: BoxFit.contain);
+      return Image.memory(
+        bytes,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+      );
+    }
+    final url = item.imageUrl;
+    if (url != null && url.isNotEmpty) {
+      if (url.startsWith('data:image')) {
+        try {
+          final base64Part = url.split(',').last;
+          final decoded = base64Decode(base64Part);
+          return Image.memory(
+            decoded,
+            width: size,
+            height: size,
+            fit: BoxFit.contain,
+          );
+        } catch (_) {}
+      }
+      final resolvedUrl = url.startsWith('/') ? '${ApiService.baseUrl}$url' : url;
+      return Image.network(
+        resolvedUrl,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) =>
+            Icon(item.icon, size: size, color: AppColors.primary),
+      );
     }
     return Icon(item.icon, size: size, color: AppColors.primary);
   }
@@ -315,8 +451,10 @@ class StockImage extends StatelessWidget {
 AppBar staffFormAppBar(BuildContext context, String title) {
   return AppBar(
     centerTitle: true,
-    title: Text(title,
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+    title: Text(
+      title,
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+    ),
     leading: IconButton(
       icon: const Icon(Icons.chevron_left, size: 22),
       onPressed: () => Navigator.of(context).maybePop(),

@@ -1,24 +1,100 @@
-
 import 'package:flutter/material.dart';
 
+/// Helper to map string icon identifiers from backend to Flutter Material IconData
+IconData iconFromName(String? name) {
+  switch (name?.toLowerCase()) {
+    case 'cabin':
+      return Icons.cabin;
+    case 'house':
+      return Icons.house;
+    case 'bed':
+      return Icons.bed;
+    case 'local_fire_department':
+      return Icons.local_fire_department;
+    case 'soup_kitchen':
+      return Icons.soup_kitchen;
+    case 'lightbulb':
+      return Icons.lightbulb;
+    case 'flashlight_on':
+      return Icons.flashlight_on;
+    case 'backpack':
+      return Icons.backpack;
+    case 'checkroom':
+      return Icons.checkroom;
+    case 'hiking':
+      return Icons.hiking;
+    case 'bedtime':
+      return Icons.bedtime;
+    default:
+      return Icons.inventory_2;
+  }
+}
+
 class Product {
+  final String id;
   final String name;
   final String sub;
+  final String category;
+  final String categorySlug;
   final int price;
+  final bool isSpecialOffer;
   final String? asset;
+  final String? imageUrl;
   final IconData icon;
+  final String iconName;
   final String description;
   final int stock;
 
   const Product({
+    this.id = '',
     required this.name,
     required this.sub,
+    this.category = 'General',
+    this.categorySlug = 'general',
     required this.price,
+    this.isSpecialOffer = false,
     this.asset,
+    this.imageUrl,
     required this.icon,
+    this.iconName = 'inventory_2',
     this.description = 'No description available.',
     this.stock = 0,
   });
+
+  factory Product.fromJson(Map<String, dynamic> json) {
+    final iconStr = json['icon'] as String? ?? 'inventory_2';
+    return Product(
+      id: json['id']?.toString() ?? '',
+      name: json['name'] as String? ?? '',
+      sub: json['sub'] as String? ?? '',
+      category: json['category'] as String? ?? 'General',
+      categorySlug: json['category_slug'] as String? ?? 'general',
+      price: (json['price'] as num?)?.toInt() ?? 0,
+      isSpecialOffer: json['is_special_offer'] == true,
+      asset: json['asset'] as String?,
+      imageUrl: json['image_url'] as String?,
+      icon: iconFromName(iconStr),
+      iconName: iconStr,
+      description:
+          json['description'] as String? ?? 'No description available.',
+      stock: (json['stock'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'sub': sub,
+    'category': category,
+    'category_slug': categorySlug,
+    'price': price,
+    'is_special_offer': isSpecialOffer,
+    'asset': asset,
+    'image_url': imageUrl,
+    'icon': iconName,
+    'description': description,
+    'stock': stock,
+  };
 }
 
 class CartItem {
@@ -33,241 +109,234 @@ final ValueNotifier<List<CartItem>> cartNotifier =
     ValueNotifier<List<CartItem>>([]);
 
 String rupiah(int value) {
-  return 'Rp ${value.toString().replaceAllMapped(
-    RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-    (match) => '${match[1]}.',
-  )}';
+  return 'Rp ${value.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]}.')}';
 }
 
-// ─── Product catalogue ────────────────────────────────────────────────────────
+// ─── Global Notifiers (Live API State) ─────────────────────────────────────────
 
-const Product _campingTent = Product(
-  name: 'Camping Tent',
-  sub: '2 Person Tent',
-  price: 150000,
-  icon: Icons.cabin,
-  stock: 8,
-  description:
-      'Lightweight dome tent for two people. Waterproof flysheet, double '
-      'layer ventilation and a quick-pitch frame that sets up in minutes. '
-      'Comes with pegs, guy ropes and a carry bag.',
+final ValueNotifier<List<Product>> productsNotifier =
+    ValueNotifier<List<Product>>([]);
+final ValueNotifier<bool> catalogLoading = ValueNotifier<bool>(true);
+final ValueNotifier<String?> catalogError = ValueNotifier<String?>(null);
+
+final ValueNotifier<List<Product>> wishlistNotifier =
+    ValueNotifier<List<Product>>([]);
+
+final ValueNotifier<List<AppOrder>> ordersNotifier =
+    ValueNotifier<List<AppOrder>>([]);
+
+final ValueNotifier<List<AppTransaction>> transactionsNotifier =
+    ValueNotifier<List<AppTransaction>>([]);
+final ValueNotifier<String> selectedPaymentMethod = ValueNotifier<String>(
+  'BCA',
 );
 
-const Product _familyTent = Product(
-  name: 'Family Tent',
-  sub: '4 Person Tent',
-  price: 250000,
-  icon: Icons.house,
-  stock: 5,
-  description:
-      'Spacious tent for up to four people with a separate sleeping area and '
-      'a covered vestibule for your gear. Tall ceiling, mesh windows and a '
-      'sturdy fibreglass frame for stable camping.',
-);
+// ─── Dynamic Category Getters ─────────────────────────────────────────────────
 
-const Product _sleepingBag = Product(
-  name: 'Sleeping Bag',
-  sub: 'Outdoor Sleeping',
-  price: 75000,
-  icon: Icons.bed,
-  stock: 12,
-  description:
-      'Warm and soft mummy-style sleeping bag suitable for mountain and '
-      'lowland camping. Zipper on both sides, hooded design and compact '
-      'enough to fit in a backpack.',
-);
+List<Product> get allProducts => productsNotifier.value;
 
-const Product _portableStove = Product(
-  name: 'Portable Stove',
-  sub: 'Camping Stove',
-  price: 50000,
-  icon: Icons.local_fire_department,
-  stock: 10,
-  description:
-      'Compact single-burner gas stove with adjustable flame and a stable '
-      'folding stand. Perfect for boiling water and quick trail meals. '
-      'Gas canister not included.',
-);
+List<Product> get specialOffers =>
+    allProducts.where((p) => p.isSpecialOffer).toList();
 
-const Product _cookingSet = Product(
-  name: 'Cooking Set',
-  sub: 'Outdoor Cooking',
-  price: 65000,
-  icon: Icons.soup_kitchen,
-  stock: 7,
-  description:
-      'Nesting cookware set with two pots, a pan, a lid and utensils. '
-      'Made from lightweight aluminium with heat-resistant handles, and '
-      'packs together into a single carry pouch.',
-);
+List<Product> get shelterItems => allProducts
+    .where(
+      (p) =>
+          p.categorySlug == 'shelter' ||
+          p.category.toLowerCase().contains('shelter') ||
+          p.category.toLowerCase().contains('sleep') ||
+          p.category.toLowerCase().contains('tenda') ||
+          p.category.toLowerCase().contains('tent'),
+    )
+    .toList();
 
-const Product _campingLantern = Product(
-  name: 'Camping Lantern',
-  sub: 'LED Lantern',
-  price: 35000,
-  icon: Icons.lightbulb,
-  stock: 15,
-  description:
-      'Bright rechargeable LED lantern with three brightness modes. Hangs '
-      'from the tent ceiling or stands on a table, and lasts up to 12 hours '
-      'on a full charge.',
-);
+List<Product> get kitchenItems => allProducts
+    .where(
+      (p) =>
+          p.categorySlug == 'kitchen' ||
+          p.category.toLowerCase().contains('kitchen') ||
+          p.category.toLowerCase().contains('cook') ||
+          p.category.toLowerCase().contains('kompor') ||
+          p.category.toLowerCase().contains('masak'),
+    )
+    .toList();
 
-const Product _flashlight = Product(
-  name: 'Flashlight',
-  sub: 'Portable Light',
-  price: 20000,
-  icon: Icons.flashlight_on,
-  stock: 20,
-  description:
-      'Pocket-sized, water-resistant flashlight with a focused beam for '
-      'night walks and trail use. Durable aluminium body with a wrist strap.',
-);
+List<Product> get lightingItems => allProducts
+    .where(
+      (p) =>
+          p.categorySlug == 'lighting' ||
+          p.categorySlug == 'lightning' ||
+          p.category.toLowerCase().contains('light') ||
+          p.category.toLowerCase().contains('lampu') ||
+          p.category.toLowerCase().contains('senter'),
+    )
+    .toList();
 
-const Product _hikingBackpack = Product(
-  name: 'Hiking Backpack',
-  sub: 'Outdoor Backpack',
-  price: 80000,
-  icon: Icons.backpack,
-  stock: 6,
-  description:
-      'Comfortable 40L hiking backpack with padded shoulder straps, chest '
-      'and hip belts, a rain cover and multiple compartments to keep your '
-      'gear organised.',
-);
-
-const Product _hikingJacket = Product(
-  name: 'Hiking Jacket',
-  sub: 'Outdoor Apparel',
-  price: 60000,
-  icon: Icons.checkroom,
-  stock: 9,
-  description:
-      'Windproof and water-repellent jacket that stays light and breathable '
-      'on the trail. Adjustable hood and cuffs, with zipped pockets for '
-      'small essentials.',
-);
-
-// Special Offers
-const List<Product> specialOffers = [_campingTent, _sleepingBag];
-
-// Shelter & Sleeping
-const List<Product> shelterItems = [_campingTent, _familyTent, _sleepingBag];
-
-// Camp Kitchen & Cooking
-const List<Product> kitchenItems = [_portableStove, _cookingSet];
-
-// Lighting & Power
-const List<Product> lightingItems = [_campingLantern, _flashlight];
-
-// Apparel & Personal Gear
-const List<Product> apparelItems = [_hikingBackpack, _hikingJacket];
+List<Product> get apparelItems => allProducts
+    .where(
+      (p) =>
+          p.categorySlug == 'apparel' ||
+          p.category.toLowerCase().contains('apparel') ||
+          p.category.toLowerCase().contains('gear') ||
+          p.category.toLowerCase().contains('jaket') ||
+          p.category.toLowerCase().contains('tas') ||
+          p.category.toLowerCase().contains('carrier'),
+    )
+    .toList();
 
 /// Number of units of [product] currently in the cart.
 int cartQtyOf(Product product) {
-  final idx =
-      cartNotifier.value.indexWhere((e) => e.product.name == product.name);
+  final idx = cartNotifier.value.indexWhere(
+    (e) =>
+        e.product.name == product.name ||
+        (e.product.id.isNotEmpty && e.product.id == product.id),
+  );
   return idx >= 0 ? cartNotifier.value[idx].qty : 0;
 }
 
-List<Product> get allProducts {
-  final map = <String, Product>{};
-  for (final p in [
-    ...specialOffers,
-    ...shelterItems,
-    ...kitchenItems,
-    ...lightingItems,
-    ...apparelItems,
-  ]) {
-    map[p.name] = p;
-  }
-  return map.values.toList();
-}
-
-final ValueNotifier<List<Product>> wishlistNotifier =
-    ValueNotifier<List<Product>>([
-  shelterItems[1],
-  lightingItems[0],
-]);
-
 // ─── Transaction & Order models ───────────────────────────────────────────────
 
+class AppOrderItem {
+  final String productId;
+  final String productName;
+  final String? productSub;
+  final int qty;
+  final int unitPrice;
+
+  const AppOrderItem({
+    required this.productId,
+    required this.productName,
+    this.productSub,
+    required this.qty,
+    required this.unitPrice,
+  });
+
+  factory AppOrderItem.fromJson(Map<String, dynamic> json) {
+    return AppOrderItem(
+      productId: json['product_id']?.toString() ?? '',
+      productName: json['product_name'] as String? ?? 'Item Campy',
+      productSub: json['product_sub'] as String?,
+      qty: (json['qty'] as num?)?.toInt() ?? 1,
+      unitPrice: (json['unit_price'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
 class AppTransaction {
+  final String id;
   final String orderId;
   final int amount;
   final String date;
+  final String time;
   final String status; // 'success' | 'failed'
   final String paymentMethod;
+  final String recipient;
 
   const AppTransaction({
+    this.id = '',
     required this.orderId,
     required this.amount,
     required this.date,
+    this.time = '',
     required this.status,
     required this.paymentMethod,
+    this.recipient = 'Campy',
   });
+
+  factory AppTransaction.fromJson(Map<String, dynamic> json) {
+    return AppTransaction(
+      id: json['id']?.toString() ?? '',
+      orderId: json['order_id'] as String? ?? '',
+      amount: (json['amount'] as num?)?.toInt() ?? 0,
+      date: json['date'] as String? ?? '',
+      time: json['time'] as String? ?? '',
+      status: json['status'] as String? ?? 'success',
+      paymentMethod: json['payment_method'] as String? ?? 'BCA',
+      recipient: json['recipient'] as String? ?? 'Campy',
+    );
+  }
 }
 
 class AppOrder {
   final String id;
   final Product product;
+  final List<AppOrderItem> items;
   final int qty;
+  final int subtotal;
+  final int deliveryFee;
+  final int total;
+  final String deliveryMethod;
+  final String paymentMethod;
+  final String location;
   final String date;
-  final String status; // 'active' | 'completed'
+  final String status; // 'active' | 'completed' | 'cancelled'
 
   const AppOrder({
     required this.id,
     required this.product,
+    this.items = const [],
     required this.qty,
+    this.subtotal = 0,
+    this.deliveryFee = 0,
+    this.total = 0,
+    this.deliveryMethod = 'pickup',
+    this.paymentMethod = 'BCA',
+    this.location = '',
     required this.date,
     required this.status,
   });
+
+  factory AppOrder.fromJson(Map<String, dynamic> json) {
+    final rawItems = json['items'] ?? json['order_items'];
+    final itemsList = <AppOrderItem>[];
+    if (rawItems is List) {
+      for (final it in rawItems) {
+        if (it is Map<String, dynamic>) {
+          itemsList.add(AppOrderItem.fromJson(it));
+        }
+      }
+    }
+
+    final pName =
+        json['product_name'] as String? ??
+        (itemsList.isNotEmpty ? itemsList.first.productName : 'Item Campy');
+    final pSub =
+        json['product_sub'] as String? ??
+        (itemsList.isNotEmpty ? itemsList.first.productSub ?? '' : '');
+    final uPrice =
+        (json['unit_price'] as num?)?.toInt() ??
+        (itemsList.isNotEmpty ? itemsList.first.unitPrice : 0);
+
+    // Try finding matching product in catalogue
+    Product? foundProd;
+    try {
+      foundProd = allProducts.firstWhere(
+        (p) =>
+            p.name == pName ||
+            (itemsList.isNotEmpty && p.id == itemsList.first.productId),
+      );
+    } catch (_) {}
+
+    final displayProduct =
+        foundProd ??
+        Product(name: pName, sub: pSub, price: uPrice, icon: Icons.inventory_2);
+
+    return AppOrder(
+      id: json['id']?.toString() ?? '',
+      product: displayProduct,
+      items: itemsList,
+      qty:
+          (json['qty'] as num?)?.toInt() ??
+          (itemsList.isNotEmpty
+              ? itemsList.fold<int>(0, (s, e) => s + e.qty)
+              : 1),
+      subtotal: (json['subtotal'] as num?)?.toInt() ?? 0,
+      deliveryFee: (json['delivery_fee'] as num?)?.toInt() ?? 0,
+      total: (json['total'] as num?)?.toInt() ?? 0,
+      deliveryMethod: json['delivery_method'] as String? ?? 'pickup',
+      paymentMethod: json['payment_method'] as String? ?? 'BCA',
+      location: json['location'] as String? ?? '',
+      date: json['date'] as String? ?? '',
+      status: json['status'] as String? ?? 'active',
+    );
+  }
 }
-
-const List<AppTransaction> sampleTransactions = [
-  AppTransaction(
-    orderId: '#ORD-20241014',
-    amount: 350000,
-    date: '14/10/2024',
-    status: 'success',
-    paymentMethod: 'BCA',
-  ),
-  AppTransaction(
-    orderId: '#ORD-20240930',
-    amount: 250000,
-    date: '30/09/2024',
-    status: 'success',
-    paymentMethod: 'DANA',
-  ),
-  AppTransaction(
-    orderId: '#ORD-20240915',
-    amount: 150000,
-    date: '15/09/2024',
-    status: 'failed',
-    paymentMethod: 'GoPay',
-  ),
-];
-
-final List<AppOrder> sampleOrders = [
-  AppOrder(
-    id: '#ORD-20241014',
-    product: shelterItems[0],
-    qty: 1,
-    date: '14/10/2024 – 16/10/2024',
-    status: 'active',
-  ),
-  AppOrder(
-    id: '#ORD-20240930',
-    product: kitchenItems[0],
-    qty: 2,
-    date: '30/09/2024 – 01/10/2024',
-    status: 'completed',
-  ),
-  AppOrder(
-    id: '#ORD-20240915',
-    product: shelterItems[2],
-    qty: 1,
-    date: '15/09/2024 – 17/09/2024',
-    status: 'completed',
-  ),
-];

@@ -4,6 +4,7 @@ import 'package:campy/data.dart';
 import 'package:campy/main.dart';
 import 'package:campy/pages/add_payment_method_page.dart';
 import 'package:campy/pages/checkout_page.dart';
+import 'package:campy/pages/home_page.dart';
 import 'package:campy/pages/order_detail_page.dart';
 import 'package:campy/pages/payment_page.dart';
 import 'package:campy/pages/product_detail_page.dart';
@@ -19,23 +20,36 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('Checkout delivery method switch and fee calculation',
-      (WidgetTester tester) async {
-    // Setup cart with 1 item of price 100,000
+  testWidgets('HomePage shows catalog errors after loading finishes', (
+    WidgetTester tester,
+  ) async {
+    productsNotifier.value = [];
+    catalogLoading.value = false;
+    catalogError.value = 'Backend offline';
+
+    await tester.pumpWidget(const MaterialApp(home: HomePage()));
+
+    expect(find.textContaining('Gagal memuat katalog'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
+  testWidgets('Checkout delivery method switch and fee calculation', (
+    WidgetTester tester,
+  ) async {
+    // Checkout totals are supplied by the backend, so this test verifies
+    // the UI stays blocked until a server quote is available.
     cartNotifier.value = [
       const Product(
+        id: 'test-product',
         name: 'Camping Tent',
         sub: '2 Person Tent',
         price: 100000,
         icon: Icons.cabin,
+        stock: 5,
       ).let((p) => CartItem(p, 1, 100000)),
     ];
 
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: CheckoutPage(),
-      ),
-    );
+    await tester.pumpWidget(const MaterialApp(home: CheckoutPage()));
     await tester.pumpAndSettle();
 
     // Verify initial state: Self Pick-Up selected by default, no fee
@@ -43,50 +57,37 @@ void main() {
     expect(find.text('Self Pick-Up'), findsOneWidget);
     expect(find.text('Delivery'), findsOneWidget);
     expect(find.text('Free'), findsWidgets);
-    expect(find.text(rupiah(100000)), findsWidgets); // subtotal & total
+    expect(find.text('...'), findsWidgets);
 
     // Select Delivery method
     await tester.tap(find.text('Delivery'));
     await tester.pumpAndSettle();
 
-    // Verify delivery fee is automatically added (+20,000) -> total becomes 120,000
-    expect(find.text(rupiah(20000)), findsOneWidget);
-    expect(find.text(rupiah(120000)), findsOneWidget);
+    expect(find.text('Delivery'), findsWidgets);
 
     // Switch back to Self Pick-Up
     await tester.tap(find.text('Self Pick-Up'));
     await tester.pumpAndSettle();
 
-    // Verify fee is removed -> total is back to 100,000
-    expect(find.text(rupiah(100000)), findsWidgets);
-
-    // Switch back to Delivery and proceed to Payment
-    await tester.tap(find.text('Delivery'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Pay'));
-    await tester.pumpAndSettle();
-
-    // Verify PaymentPage opens with the updated total (120,000)
-    expect(find.byType(PaymentPage), findsOneWidget);
-    expect(find.text(rupiah(120000)), findsOneWidget);
+    expect(find.text('...'), findsWidgets);
+    expect(find.byType(PaymentPage), findsNothing);
   });
 
-  testWidgets('ProductDetailPage renders and adds to cart',
-      (WidgetTester tester) async {
+  testWidgets('ProductDetailPage renders and adds to cart', (
+    WidgetTester tester,
+  ) async {
     const testProduct = Product(
       name: 'Portable Stove',
       sub: 'Camping Stove',
       price: 50000,
       icon: Icons.local_fire_department,
+      stock: 5,
     );
 
     cartNotifier.value = [];
 
     await tester.pumpWidget(
-      const MaterialApp(
-        home: ProductDetailPage(product: testProduct),
-      ),
+      const MaterialApp(home: ProductDetailPage(product: testProduct)),
     );
     await tester.pumpAndSettle();
 
@@ -102,14 +103,38 @@ void main() {
     expect(cartNotifier.value.first.product.name, 'Portable Stove');
   });
 
-  testWidgets('OrderDetailPage renders order details correctly',
-      (WidgetTester tester) async {
-    final testOrder = sampleOrders.first;
+  testWidgets('OrderDetailPage renders order details correctly', (
+    WidgetTester tester,
+  ) async {
+    const testProduct = Product(
+      id: 'test-product',
+      name: 'Camping Tent',
+      sub: '2 Person Tent',
+      price: 100000,
+      icon: Icons.cabin,
+      stock: 5,
+    );
+    final testOrder = AppOrder(
+      id: '#ORD-TEST0001',
+      product: testProduct,
+      items: const [
+        AppOrderItem(
+          productId: 'test-product',
+          productName: 'Camping Tent',
+          productSub: '2 Person Tent',
+          qty: 1,
+          unitPrice: 100000,
+        ),
+      ],
+      qty: 1,
+      subtotal: 100000,
+      total: 100000,
+      date: '01/01/2026',
+      status: 'active',
+    );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: OrderDetailPage(order: testOrder),
-      ),
+      MaterialApp(home: OrderDetailPage(order: testOrder)),
     );
     await tester.pumpAndSettle();
 
@@ -119,14 +144,20 @@ void main() {
     expect(find.text(testOrder.product.name), findsOneWidget);
   });
 
-  testWidgets('TransactionDetailPage renders receipt',
-      (WidgetTester tester) async {
-    final testTx = sampleTransactions.first;
+  testWidgets('TransactionDetailPage renders receipt', (
+    WidgetTester tester,
+  ) async {
+    const testTx = AppTransaction(
+      id: 'TRX-TEST0001',
+      orderId: '#ORD-TEST0001',
+      amount: 100000,
+      date: '01/01/2026',
+      status: 'success',
+      paymentMethod: 'BCA',
+    );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: TransactionDetailPage(transaction: testTx),
-      ),
+      MaterialApp(home: TransactionDetailPage(transaction: testTx)),
     );
     await tester.pumpAndSettle();
 
@@ -136,13 +167,32 @@ void main() {
     expect(find.text(testTx.orderId), findsOneWidget);
   });
 
-  testWidgets('SearchPage searches and filters products',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: SearchPage(),
+  testWidgets('SearchPage searches and filters products', (
+    WidgetTester tester,
+  ) async {
+    productsNotifier.value = [
+      const Product(
+        id: 'prod-camping-tent',
+        name: 'Camping Tent',
+        sub: '2 Person Tent',
+        category: 'Shelter & Sleeping',
+        categorySlug: 'shelter',
+        price: 150000,
+        icon: Icons.cabin,
+        stock: 8,
       ),
-    );
+      const Product(
+        id: 'prod-duplicate-name',
+        name: 'Camping Tent',
+        sub: 'Novelty Light',
+        category: 'Lighting & Power',
+        categorySlug: 'lighting',
+        price: 25000,
+        icon: Icons.lightbulb,
+        stock: 4,
+      ),
+    ];
+    await tester.pumpWidget(const MaterialApp(home: SearchPage()));
     await tester.pumpAndSettle();
 
     // Verify all categories exist
@@ -156,30 +206,39 @@ void main() {
 
     // Results should contain Camping Tent
     expect(find.text('Camping Tent'), findsWidgets);
+
+    await tester.tap(find.text('Lighting'));
+    await tester.pumpAndSettle();
+    expect(find.text('Novelty Light'), findsOneWidget);
+    expect(find.text('2 Person Tent'), findsNothing);
   });
 
-  testWidgets('WishlistPage displays and manages saved items',
-      (WidgetTester tester) async {
-    wishlistNotifier.value = [shelterItems[0]];
-
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: WishlistPage(),
-      ),
+  testWidgets('WishlistPage displays and manages saved items', (
+    WidgetTester tester,
+  ) async {
+    const wishlistProduct = Product(
+      id: 'prod-camping-tent',
+      name: 'Camping Tent',
+      sub: '2 Person Tent',
+      category: 'Shelter & Sleeping',
+      categorySlug: 'shelter',
+      price: 150000,
+      icon: Icons.cabin,
+      stock: 8,
     );
+    wishlistNotifier.value = [wishlistProduct];
+
+    await tester.pumpWidget(const MaterialApp(home: WishlistPage()));
     await tester.pumpAndSettle();
 
     expect(find.text('Wishlist & Saved Items'), findsOneWidget);
-    expect(find.text(shelterItems[0].name), findsOneWidget);
+    expect(find.text(wishlistProduct.name), findsOneWidget);
   });
 
-  testWidgets('AddPaymentMethodPage validates form',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: AddPaymentMethodPage(),
-      ),
-    );
+  testWidgets('AddPaymentMethodPage validates form', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: AddPaymentMethodPage()));
     await tester.pumpAndSettle();
 
     expect(find.text('Add Payment Method'), findsOneWidget);

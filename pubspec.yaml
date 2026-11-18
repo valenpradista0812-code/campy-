@@ -35,6 +35,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   http: ^1.6.0
+  shared_preferences: ^2.3.5
 
   # Memilih gambar barang di halaman petugas (Add Item)
   image_picker: ^1.2.4
@@ -61,7 +62,14 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
-  - assets/images/
+    - assets/images/
+
+  fonts:
+    - family: Arial
+      fonts:
+        - asset: assets/fonts/Arial.ttf
+        - asset: assets/fonts/Arial-Bold.ttf
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:

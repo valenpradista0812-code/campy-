@@ -35,50 +35,51 @@ class _SignUpPageState extends State<SignUpPage> {
 
     try {
       final isOnline = await ApiService.isBackendConnected();
-      if (isOnline) {
-        final res = await ApiService.register(
-          email: _emailC.text.trim(),
-          password: _passC.text.trim(),
-          name: _nameC.text.trim(),
-          phone: _phoneC.text.trim(),
-        );
+      if (!isOnline) {
         if (!mounted) return;
-        if (res['success'] == true) {
-          final needsConfirm = res['requiresEmailConfirmation'] == true;
-          final message = res['message'] as String? ??
-              (needsConfirm
-                  ? 'Registrasi berhasil! Cek email Anda untuk konfirmasi sebelum login.'
-                  : 'Registrasi berhasil! Silakan login.');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(message),
-              duration: Duration(seconds: needsConfirm ? 6 : 3),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Server backend offline (${ApiService.baseUrl}). Pastikan backend sedang berjalan.',
             ),
-          );
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const LoginPage()),
-          );
-          return;
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(res['message'] ?? 'Registrasi gagal')),
-          );
-          return;
-        }
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+        return;
       }
 
+      final res = await ApiService.register(
+        email: _emailC.text.trim(),
+        password: _passC.text.trim(),
+        name: _nameC.text.trim(),
+        phone: _phoneC.text.trim(),
+      );
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '⚠️ Backend offline (${ApiService.baseUrl}). Masuk Mode Demo — data tidak tersimpan di database.',
+
+      if (res['success'] == true) {
+        final needsConfirm = res['requiresEmailConfirmation'] == true;
+        final message = res['message'] as String? ??
+            (needsConfirm
+                ? 'Registrasi berhasil! Cek email Anda untuk konfirmasi sebelum login.'
+                : 'Registrasi berhasil! Silakan login.');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            duration: Duration(seconds: needsConfirm ? 6 : 3),
           ),
-          duration: const Duration(seconds: 4),
-        ),
-      );
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-      );
+        );
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res['message'] ?? 'Registrasi gagal.'),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

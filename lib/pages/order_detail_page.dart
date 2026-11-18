@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data.dart';
 import '../theme/app_colors.dart';
-import '../widgets/common_widgets.dart';
 import 'help_page.dart';
-import 'product_detail_page.dart';
 
 class OrderDetailPage extends StatelessWidget {
   final AppOrder order;
@@ -12,13 +10,27 @@ class OrderDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isActive = order.status == 'active';
-    final total = order.product.price * order.qty;
+    final isCancelled = order.status == 'cancelled';
+    final total = order.total;
+    final items = order.items.isEmpty
+        ? [
+            AppOrderItem(
+              productId: order.product.id,
+              productName: order.product.name,
+              productSub: order.product.sub,
+              qty: order.qty,
+              unitPrice: order.product.price,
+            ),
+          ]
+        : order.items;
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Order Details - ${order.id}',
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+        title: Text(
+          'Order Details - ${order.id}',
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.chevron_left, size: 22),
           onPressed: () => Navigator.of(context).maybePop(),
@@ -31,12 +43,11 @@ class OrderDetailPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: isActive
-                  ? AppColors.lightGreen
-                  : AppColors.fieldBg,
+              color: isActive ? AppColors.lightGreen : AppColors.fieldBg,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                  color: isActive ? AppColors.primary : AppColors.border),
+                color: isActive ? AppColors.primary : AppColors.border,
+              ),
             ),
             child: Row(
               children: [
@@ -51,7 +62,9 @@ class OrderDetailPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isActive ? 'Rental Active' : 'Completed',
+                        isActive
+                            ? 'Rental Active'
+                            : (isCancelled ? 'Cancelled' : 'Completed'),
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -63,10 +76,14 @@ class OrderDetailPage extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         isActive
-                            ? 'Equipment is currently in use. Please return on schedule.'
-                            : 'This order has been completed and returned.',
+                            ? 'Pesanan aktif di sistem.'
+                            : (isCancelled
+                                  ? 'Pesanan ini telah dibatalkan.'
+                                  : 'Pesanan ini telah selesai.'),
                         style: const TextStyle(
-                            fontSize: 10, color: AppColors.muted),
+                          fontSize: 10,
+                          color: AppColors.muted,
+                        ),
                       ),
                     ],
                   ),
@@ -83,32 +100,20 @@ class OrderDetailPage extends StatelessWidget {
               children: [
                 _TimelineStep(
                   title: 'Order Created',
-                  time: '14 Oct 2024, 09:30 WIB',
+                  time: order.date,
                   isDone: true,
                   isLast: false,
                 ),
                 _TimelineStep(
                   title: 'KTP Verified & Approved',
-                  time: '14 Oct 2024, 10:00 WIB',
-                  isDone: true,
-                  isLast: false,
-                ),
-                _TimelineStep(
-                  title: 'Equipment Prepared & Handed Over',
-                  time: '14 Oct 2024, 11:15 WIB',
-                  isDone: true,
-                  isLast: false,
-                ),
-                _TimelineStep(
-                  title: isActive ? 'Rental Active (In Use)' : 'Rental Active',
-                  time: '14 - 16 Oct 2024',
-                  isDone: true,
+                  time: order.status,
+                  isDone: order.status != 'cancelled',
                   isLast: !isActive,
                 ),
                 if (isActive)
                   _TimelineStep(
-                    title: 'Scheduled Return & Inspection',
-                    time: 'Est. 16 Oct 2024, 18:00 WIB',
+                    title: 'Pesanan sedang aktif',
+                    time: order.date,
                     isDone: false,
                     isLast: true,
                   ),
@@ -120,60 +125,74 @@ class OrderDetailPage extends StatelessWidget {
           // ── Rented Item ──────────────────────────────────────────────────
           _CardContainer(
             title: 'Rented Equipment',
-            child: InkWell(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ProductDetailPage(product: order.product),
-                ),
-              ),
-              borderRadius: BorderRadius.circular(8),
-              child: Row(
-                children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: AppColors.imageBg,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: ProductImage(
-                      asset: order.product.asset,
-                      fallback: order.product.icon,
-                      size: 38,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              children: [
+                for (final item in items)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
                       children: [
-                        Text(order.product.name,
-                            style: const TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 2),
-                        Text(order.product.sub,
-                            style: const TextStyle(
-                                fontSize: 10, color: AppColors.muted)),
-                        Text('Rental: ${order.date}',
-                            style: const TextStyle(
-                                fontSize: 10, color: AppColors.primary)),
+                        const Icon(
+                          Icons.inventory_2,
+                          color: AppColors.primary,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.productName,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              if (item.productSub?.isNotEmpty == true)
+                                Text(
+                                  item.productSub!,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: AppColors.muted,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'Qty: ${item.qty}',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: AppColors.muted,
+                              ),
+                            ),
+                            Text(
+                              rupiah(item.unitPrice * item.qty),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text('Qty: ${order.qty}',
-                          style: const TextStyle(
-                              fontSize: 10, color: AppColors.muted)),
-                      const SizedBox(height: 2),
-                      Text(rupiah(total),
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.w700)),
-                    ],
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Rental: ${order.date}',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: AppColors.primary,
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 14),
@@ -182,21 +201,33 @@ class OrderDetailPage extends StatelessWidget {
           _CardContainer(
             title: 'Delivery & Return Location',
             child: Row(
-              children: const [
-                Icon(Icons.storefront_outlined,
-                    size: 20, color: AppColors.primary),
+              children: [
+                Icon(
+                  order.deliveryMethod == 'delivery'
+                      ? Icons.local_shipping_outlined
+                      : Icons.storefront_outlined,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
                 SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Campy Outdoor Store (Self Pick-Up)',
-                          style: TextStyle(
-                              fontSize: 11, fontWeight: FontWeight.w600)),
+                      Text(
+                        order.deliveryMethod == 'delivery'
+                            ? 'Delivery'
+                            : 'Campy Outdoor Store (Self Pick-Up)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       SizedBox(height: 2),
-                      Text('Jl. Campy No. 1, Jakarta Selatan',
-                          style: TextStyle(
-                              fontSize: 10, color: AppColors.muted)),
+                      Text(
+                        order.location,
+                        style: TextStyle(fontSize: 10, color: AppColors.muted),
+                      ),
                     ],
                   ),
                 ),
@@ -210,23 +241,33 @@ class OrderDetailPage extends StatelessWidget {
             title: 'Payment Summary',
             child: Column(
               children: [
-                _RowInfo('Subtotal Equipment', rupiah(total)),
+                _RowInfo('Subtotal Equipment', rupiah(order.subtotal)),
                 const SizedBox(height: 6),
-                _RowInfo('Delivery / Pickup Fee', 'Free'),
+                _RowInfo(
+                  'Delivery / Pickup Fee',
+                  order.deliveryFee == 0 ? 'Free' : rupiah(order.deliveryFee),
+                ),
                 const SizedBox(height: 6),
                 _RowInfo('Deposit Guarantee', 'Waived by KTP'),
                 const Divider(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Total Paid',
-                        style: TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.w700)),
-                    Text(rupiah(total),
-                        style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary)),
+                    const Text(
+                      'Total Paid',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      rupiah(total),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -234,21 +275,30 @@ class OrderDetailPage extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFF003087),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Text('BCA',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 8,
-                              fontWeight: FontWeight.w700)),
+                      child: Text(
+                        order.paymentMethod,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 8),
-                    const Text('BCA Virtual Account • Paid',
-                        style: TextStyle(
-                            fontSize: 10, color: AppColors.muted)),
+                    Text(
+                      '${order.paymentMethod} • ${order.status}',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: AppColors.muted,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -263,7 +313,9 @@ class OrderDetailPage extends StatelessWidget {
             child: ElevatedButton.icon(
               onPressed: () {
                 final cart = [...cartNotifier.value];
-                cart.add(CartItem(order.product, order.qty, order.product.price));
+                cart.add(
+                  CartItem(order.product, order.qty, order.product.price),
+                );
                 cartNotifier.value = cart;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -272,14 +324,16 @@ class OrderDetailPage extends StatelessWidget {
                 );
               },
               icon: const Icon(Icons.repeat, size: 16),
-              label: const Text('Rent Again',
-                  style: TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w600)),
+              label: const Text(
+                'Rent Again',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
           ),
@@ -288,18 +342,20 @@ class OrderDetailPage extends StatelessWidget {
             width: double.infinity,
             height: 44,
             child: OutlinedButton.icon(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const HelpPage()),
-              ),
+              onPressed: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const HelpPage())),
               icon: const Icon(Icons.support_agent, size: 16),
-              label: const Text('Need Help with this Order?',
-                  style: TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w600)),
+              label: const Text(
+                'Need Help with this Order?',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
                 side: const BorderSide(color: AppColors.primary),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
           ),
@@ -327,11 +383,14 @@ class _CardContainer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.muted)),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppColors.muted,
+            ),
+          ),
           const SizedBox(height: 10),
           child,
         ],
@@ -386,16 +445,19 @@ class _TimelineStep extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: isDone ? FontWeight.w600 : FontWeight.w500,
-                      color: isDone ? AppColors.textDark : AppColors.muted,
-                    )),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: isDone ? FontWeight.w600 : FontWeight.w500,
+                    color: isDone ? AppColors.textDark : AppColors.muted,
+                  ),
+                ),
                 const SizedBox(height: 1),
-                Text(time,
-                    style:
-                        const TextStyle(fontSize: 9, color: AppColors.muted)),
+                Text(
+                  time,
+                  style: const TextStyle(fontSize: 9, color: AppColors.muted),
+                ),
               ],
             ),
           ),
@@ -415,12 +477,15 @@ class _RowInfo extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style: const TextStyle(fontSize: 11, color: AppColors.muted)),
-        Text(value,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, color: AppColors.muted),
+        ),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+        ),
       ],
     );
   }
 }
-

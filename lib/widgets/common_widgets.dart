@@ -95,6 +95,8 @@ class AppTextField extends StatefulWidget {
   final String? Function(String?)? validator;
   final List<TextInputFormatter>? inputFormatters;
   final IconData? trailingIcon;
+  final bool readOnly;
+  final int maxLines;
 
   const AppTextField({
     super.key,
@@ -106,6 +108,8 @@ class AppTextField extends StatefulWidget {
     this.validator,
     this.inputFormatters,
     this.trailingIcon,
+    this.readOnly = false,
+    this.maxLines = 1,
   });
 
   @override
@@ -120,33 +124,43 @@ class _AppTextFieldState extends State<AppTextField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(widget.label,
-            style: const TextStyle(fontSize: 12, color: AppColors.textGrey)),
+        Text(
+          widget.label,
+          style: const TextStyle(fontSize: 12, color: AppColors.textGrey),
+        ),
         const SizedBox(height: 6),
         TextFormField(
           controller: widget.controller,
           obscureText: widget.isPassword && _obscure,
           keyboardType: widget.keyboardType,
+          readOnly: widget.readOnly,
           validator: widget.validator,
           inputFormatters: widget.inputFormatters,
+          maxLines: widget.isPassword ? 1 : widget.maxLines,
           style: const TextStyle(fontSize: 14),
           decoration: InputDecoration(
             hintText: widget.hint,
             filled: true,
             fillColor: AppColors.fieldBg,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 14,
+            ),
             suffixIcon: widget.isPassword
                 ? IconButton(
                     icon: Icon(
-                        _obscure ? Icons.visibility_off : Icons.visibility,
-                        size: 18),
+                      _obscure ? Icons.visibility_off : Icons.visibility,
+                      size: 18,
+                    ),
                     onPressed: () => setState(() => _obscure = !_obscure),
                   )
                 : (widget.trailingIcon != null
-                    ? Icon(widget.trailingIcon,
-                        size: 18, color: AppColors.textGrey)
-                    : null),
+                      ? Icon(
+                          widget.trailingIcon,
+                          size: 18,
+                          color: AppColors.textGrey,
+                        )
+                      : null),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide.none,
@@ -182,11 +196,12 @@ class SearchField extends StatelessWidget {
 
     if (isReadOnly) {
       return InkWell(
-        onTap: onTap ??
+        onTap:
+            onTap ??
             () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SearchPage()),
-              );
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const SearchPage()));
             },
         borderRadius: BorderRadius.circular(8),
         child: IgnorePointer(
@@ -195,8 +210,7 @@ class SearchField extends StatelessWidget {
             readOnly: true,
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle:
-                  const TextStyle(fontSize: 12, color: AppColors.muted),
+              hintStyle: const TextStyle(fontSize: 12, color: AppColors.muted),
               prefixIcon: const Icon(Icons.search, size: 20),
               filled: true,
               fillColor: AppColors.fieldBg,
@@ -237,18 +251,42 @@ class SearchField extends StatelessWidget {
 
 class ProductImage extends StatelessWidget {
   final String? asset;
+  final String? imageUrl;
   final IconData fallback;
   final double size;
 
   const ProductImage({
     super.key,
     this.asset,
+    this.imageUrl,
     required this.fallback,
     this.size = 64,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return Image.network(
+        imageUrl!,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) {
+          if (asset != null && asset!.isNotEmpty) {
+            return Image.asset(
+              asset!,
+              width: size,
+              height: size,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) =>
+                  Icon(fallback, size: size, color: AppColors.primary),
+            );
+          }
+          return Icon(fallback, size: size, color: AppColors.primary);
+        },
+      );
+    }
+
     if (asset != null && asset!.isNotEmpty) {
       return Image.asset(
         asset!,
@@ -256,15 +294,11 @@ class ProductImage extends StatelessWidget {
         height: size,
         fit: BoxFit.contain,
         errorBuilder: (_, __, ___) {
-          return Icon(fallback, size: size);
+          return Icon(fallback, size: size, color: AppColors.primary);
         },
       );
     }
 
-    return Icon(
-      fallback,
-      size: size,
-      color: AppColors.primary,
-    );
+    return Icon(fallback, size: size, color: AppColors.primary);
   }
 }

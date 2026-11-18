@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 import '../theme/app_colors.dart';
 import 'orders_page.dart';
 import 'my_details_page.dart';
@@ -9,7 +10,7 @@ import 'help_page.dart';
 import 'about_page.dart';
 import 'terms_policy_page.dart';
 import 'wishlist_page.dart';
-import 'login_page.dart';
+import 'start_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -28,19 +29,29 @@ class ProfilePage extends StatelessWidget {
               CircleAvatar(
                 radius: 32,
                 backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                child: const Icon(Icons.person, size: 36, color: AppColors.primary),
+                child: const Icon(
+                  Icons.person,
+                  size: 36,
+                  color: AppColors.primary,
+                ),
               ),
               const SizedBox(width: 14),
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Valen Pradista',
-                      style: TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w700,
-                          color: AppColors.textDark)),
+                  Text(
+                    ApiService.currentUserName ?? 'Pengguna',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textDark,
+                    ),
+                  ),
                   SizedBox(height: 3),
-                  Text('valenpradista@gmail.com',
-                      style: TextStyle(fontSize: 11, color: AppColors.muted)),
+                  Text(
+                    ApiService.currentUserEmail ?? '',
+                    style: TextStyle(fontSize: 11, color: AppColors.muted),
+                  ),
                 ],
               ),
             ],
@@ -51,67 +62,79 @@ class ProfilePage extends StatelessWidget {
         _MenuItem(
           icon: Icons.shopping_bag_outlined,
           label: 'Orders',
-          onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const OrdersPage())),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const OrdersPage())),
         ),
         _MenuItem(
           icon: Icons.person_outline,
           label: 'My Details',
-          onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const MyDetailsPage())),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const MyDetailsPage())),
         ),
         _MenuItem(
           icon: Icons.favorite_border,
           label: 'Wishlist & Saved Items',
-          onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const WishlistPage())),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const WishlistPage())),
         ),
         _MenuItem(
           icon: Icons.history,
           label: 'History Transaction',
           onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const HistoryTransactionPage())),
+            MaterialPageRoute(builder: (_) => const HistoryTransactionPage()),
+          ),
         ),
         _MenuItem(
           icon: Icons.payment_outlined,
           label: 'Payment Methods',
-          onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const PaymentMethodsPage())),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const PaymentMethodsPage())),
         ),
         _MenuItem(
           icon: Icons.notifications_outlined,
           label: 'Notifications',
-          onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const NotificationsPage())),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const NotificationsPage())),
         ),
         _MenuItem(
           icon: Icons.help_outline,
           label: 'Help',
-          onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const HelpPage())),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const HelpPage())),
         ),
         _MenuItem(
           icon: Icons.info_outline,
           label: 'About',
-          onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const AboutPage())),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const AboutPage())),
         ),
         _MenuItem(
           icon: Icons.description_outlined,
           label: 'Terms & Policy',
           onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const TermsPolicyViewPage())),
+            MaterialPageRoute(builder: (_) => const TermsPolicyViewPage()),
+          ),
         ),
         const SizedBox(height: 12),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: ListTile(
             leading: const Icon(Icons.logout, color: Colors.red, size: 20),
-            title: const Text('Log Out',
-                style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.red,
-                    fontWeight: FontWeight.w600)),
+            title: const Text(
+              'Log Out',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.red,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
               side: BorderSide(color: Colors.red.shade100),
@@ -121,24 +144,29 @@ class ProfilePage extends StatelessWidget {
               showDialog(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  title: const Text('Log Out',
-                      style: TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w700)),
+                  title: const Text(
+                    'Log Out',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
                   content: const Text(
-                      'Are you sure you want to log out from Campy?',
-                      style: TextStyle(fontSize: 12)),
+                    'Are you sure you want to log out from Campy?',
+                    style: TextStyle(fontSize: 12),
+                  ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(ctx).pop(),
-                      child: const Text('Cancel',
-                          style: TextStyle(color: AppColors.muted)),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: AppColors.muted),
+                      ),
                     ),
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.of(ctx).pop();
+                        await ApiService.logout();
+                        if (!context.mounted) return;
                         Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(
-                              builder: (_) => const LoginPage()),
+                          MaterialPageRoute(builder: (_) => const StartPage()),
                           (route) => false,
                         );
                       },
@@ -164,8 +192,11 @@ class _MenuItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  const _MenuItem(
-      {required this.icon, required this.label, required this.onTap});
+  const _MenuItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -174,8 +205,11 @@ class _MenuItem extends StatelessWidget {
         ListTile(
           leading: Icon(icon, color: AppColors.primary, size: 20),
           title: Text(label, style: const TextStyle(fontSize: 13)),
-          trailing: const Icon(Icons.chevron_right,
-              size: 18, color: AppColors.muted),
+          trailing: const Icon(
+            Icons.chevron_right,
+            size: 18,
+            color: AppColors.muted,
+          ),
           onTap: onTap,
         ),
         const Divider(height: 1, indent: 56),

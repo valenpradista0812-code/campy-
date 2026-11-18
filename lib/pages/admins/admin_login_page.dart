@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../staff_data.dart';
 import '../../widgets/staff_widgets.dart';
 import 'admin_shell.dart';
+import 'super_admin_register_page.dart';
 
 class AdminLoginPage extends StatelessWidget {
   const AdminLoginPage({super.key});
@@ -10,9 +10,10 @@ class AdminLoginPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return StaffLoginForm(
       roleLabel: 'Admin',
-      emailHint: kAdminEmail,
-      verify: verifyAdmin,
+      emailHint: 'admin@example.com',
       destination: (_) => const AdminShell(),
+      registerPage: const SuperAdminRegisterPage(),
+      registerLabel: 'Daftar sebagai Super Admin',
     );
   }
 }

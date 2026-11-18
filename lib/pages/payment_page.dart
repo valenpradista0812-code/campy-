@@ -5,15 +5,24 @@ import 'transaction_result_page.dart';
 
 class PaymentPage extends StatelessWidget {
   final int total;
-  const PaymentPage({super.key, required this.total});
+  final String orderId;
+  final String paymentMethod;
+  const PaymentPage({
+    super.key,
+    required this.total,
+    required this.orderId,
+    required this.paymentMethod,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Payment',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+        title: const Text(
+          'Payment',
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.chevron_left, size: 22),
           onPressed: () => Navigator.of(context).maybePop(),
@@ -35,15 +44,19 @@ class PaymentPage extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const Text('Total Payment',
-                      style:
-                          TextStyle(fontSize: 11, color: AppColors.muted)),
+                  const Text(
+                    'Total Payment',
+                    style: TextStyle(fontSize: 11, color: AppColors.muted),
+                  ),
                   const SizedBox(height: 4),
-                  Text(rupiah(total),
-                      style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary)),
+                  Text(
+                    rupiah(total),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -90,29 +103,43 @@ class PaymentPage extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () => Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
-                      builder: (_) =>
-                          TransactionResultPage(success: true, total: total)),
+                    builder: (_) => TransactionResultPage(
+                      success: true,
+                      total: total,
+                      orderId: orderId,
+                      paymentMethod: paymentMethod,
+                    ),
+                  ),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                child: const Text('Save Code QR & Pay',
-                    style:
-                        TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                child: const Text(
+                  'Save Code QR & Pay',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
             const SizedBox(height: 10),
             TextButton(
               onPressed: () => Navigator.of(context).pushReplacement(
                 MaterialPageRoute(
-                    builder: (_) =>
-                        TransactionResultPage(success: false, total: total)),
+                  builder: (_) => TransactionResultPage(
+                    success: false,
+                    total: total,
+                    orderId: orderId,
+                    paymentMethod: paymentMethod,
+                  ),
+                ),
               ),
-              child: const Text('Simulate Failed Transaction',
-                  style: TextStyle(fontSize: 11, color: AppColors.muted)),
+              child: const Text(
+                'Simulate Failed Transaction',
+                style: TextStyle(fontSize: 11, color: AppColors.muted),
+              ),
             ),
             const SizedBox(height: 16),
           ],
@@ -126,21 +153,21 @@ class PaymentPage extends StatelessWidget {
 
 class _QrPainter extends CustomPainter {
   static const _grid = [
-    [1,1,1,1,1,1,1,0,1,0,1,1,1,1,1],
-    [1,0,0,0,0,0,1,0,0,1,1,0,0,0,1],
-    [1,0,1,1,1,0,1,0,1,0,1,0,1,0,1],
-    [1,0,1,1,1,0,1,0,0,1,1,0,1,0,1],
-    [1,0,1,1,1,0,1,0,1,0,0,0,1,0,1],
-    [1,0,0,0,0,0,1,0,1,1,0,0,0,0,1],
-    [1,1,1,1,1,1,1,0,1,0,1,1,1,1,1],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [1,1,0,1,1,0,1,0,1,1,0,1,1,0,1],
-    [0,1,0,1,0,0,0,1,0,1,0,0,1,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
-    [0,1,0,1,0,0,0,1,0,1,0,0,1,0,0],
-    [1,1,1,1,1,0,1,0,1,0,1,0,1,0,1],
-    [1,0,0,0,0,0,1,0,0,1,0,1,0,1,0],
-    [1,1,1,1,1,1,1,0,1,0,1,0,1,1,1],
+    [1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1],
+    [1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+    [1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1],
+    [1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1],
+    [1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1],
+    [0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1],
+    [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+    [0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0],
+    [1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+    [1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1],
   ];
 
   @override
@@ -151,8 +178,7 @@ class _QrPainter extends CustomPainter {
       for (var c = 0; c < _grid[r].length; c++) {
         if (_grid[r][c] == 1) {
           canvas.drawRect(
-            Rect.fromLTWH(
-                c * cell + 0.5, r * cell + 0.5, cell - 1, cell - 1),
+            Rect.fromLTWH(c * cell + 0.5, r * cell + 0.5, cell - 1, cell - 1),
             paint,
           );
         }
@@ -177,11 +203,14 @@ class _Badge extends StatelessWidget {
         color: color,
         borderRadius: BorderRadius.circular(5),
       ),
-      child: Text(label,
-          style: const TextStyle(
-              color: Colors.white,
-              fontSize: 9,
-              fontWeight: FontWeight.w700)),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }

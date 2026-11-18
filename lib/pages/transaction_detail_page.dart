@@ -15,8 +15,10 @@ class TransactionDetailPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Transaction Details',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+        title: const Text(
+          'Transaction Details',
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.chevron_left, size: 22),
           onPressed: () => Navigator.of(context).maybePop(),
@@ -82,26 +84,31 @@ class TransactionDetailPage extends StatelessWidget {
             ),
             child: Column(
               children: [
-                _ReceiptRow('Transaction ID',
-                    'TRX-${transaction.orderId.replaceAll('#', '')}-901'),
+                _ReceiptRow('Transaction ID', transaction.id),
                 const SizedBox(height: 8),
                 _ReceiptRow('Order ID', transaction.orderId),
                 const SizedBox(height: 8),
-                _ReceiptRow('Date & Time', '${transaction.date}, 10:13 WIB'),
+                _ReceiptRow(
+                  'Date & Time',
+                  '${transaction.date}, ${transaction.time}',
+                ),
                 const SizedBox(height: 8),
-                _ReceiptRow('Recipient', 'Valen Pradista'),
+                _ReceiptRow('Recipient', transaction.recipient),
                 const Divider(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Payment Method',
-                        style: TextStyle(
-                            fontSize: 11, color: AppColors.muted)),
+                    const Text(
+                      'Payment Method',
+                      style: TextStyle(fontSize: 11, color: AppColors.muted),
+                    ),
                     Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFF003087),
                             borderRadius: BorderRadius.circular(4),
@@ -109,15 +116,20 @@ class TransactionDetailPage extends StatelessWidget {
                           child: Text(
                             transaction.paymentMethod,
                             style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 8,
-                                fontWeight: FontWeight.w700),
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 6),
-                        Text('${transaction.paymentMethod} Transfer',
-                            style: const TextStyle(
-                                fontSize: 11, fontWeight: FontWeight.w600)),
+                        Text(
+                          '${transaction.paymentMethod} Transfer',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -126,12 +138,15 @@ class TransactionDetailPage extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Status',
-                        style: TextStyle(
-                            fontSize: 11, color: AppColors.muted)),
+                    const Text(
+                      'Status',
+                      style: TextStyle(fontSize: 11, color: AppColors.muted),
+                    ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: color.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(4),
@@ -139,9 +154,10 @@ class TransactionDetailPage extends StatelessWidget {
                       child: Text(
                         ok ? 'SUCCESS' : 'FAILED',
                         style: TextStyle(
-                            color: color,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700),
+                          color: color,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ],
@@ -164,14 +180,16 @@ class TransactionDetailPage extends StatelessWidget {
                 );
               },
               icon: const Icon(Icons.download, size: 16),
-              label: const Text('Download Receipt',
-                  style: TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w600)),
+              label: const Text(
+                'Download Receipt',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
           ),
@@ -183,18 +201,24 @@ class TransactionDetailPage extends StatelessWidget {
               child: OutlinedButton(
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => PaymentPage(total: transaction.amount),
+                    builder: (_) => PaymentPage(
+                      total: transaction.amount,
+                      orderId: transaction.orderId,
+                      paymentMethod: transaction.paymentMethod,
+                    ),
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.red,
                   side: const BorderSide(color: Colors.red),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                child: const Text('Retry Payment',
-                    style: TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w600)),
+                child: const Text(
+                  'Retry Payment',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
         ],
@@ -213,12 +237,15 @@ class _ReceiptRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style: const TextStyle(fontSize: 11, color: AppColors.muted)),
-        Text(value,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, color: AppColors.muted),
+        ),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+        ),
       ],
     );
   }
 }
-

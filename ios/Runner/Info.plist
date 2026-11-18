@@ -47,5 +47,10 @@
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Campy membutuhkan akses galeri untuk memilih gambar barang.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

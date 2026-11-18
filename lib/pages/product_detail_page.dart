@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data.dart';
+import '../services/api_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common_widgets.dart';
 import 'checkout_page.dart';
@@ -18,31 +19,48 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   bool get _isFav {
     return wishlistNotifier.value
-        .any((p) => p.name == widget.product.name);
+        .any((p) => p.name == widget.product.name || (p.id.isNotEmpty && p.id == widget.product.id));
   }
 
-  void _toggleFav() {
-    final list = [...wishlistNotifier.value];
-    final idx = list.indexWhere((p) => p.name == widget.product.name);
-    if (idx >= 0) {
-      list.removeAt(idx);
+  void _toggleFav() async {
+    final prevList = [...wishlistNotifier.value];
+    final isAlreadyFav = _isFav;
+
+    if (isAlreadyFav) {
+      wishlistNotifier.value = prevList
+          .where((p) => p.name != widget.product.name && (widget.product.id.isEmpty || p.id != widget.product.id))
+          .toList();
+      setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${widget.product.name} removed from wishlist'),
           duration: const Duration(seconds: 1),
         ),
       );
+      if (widget.product.id.isNotEmpty) {
+        final ok = await ApiService.removeWishlist(widget.product.id);
+        if (!ok && mounted) {
+          wishlistNotifier.value = prevList; // rollback
+          setState(() {});
+        }
+      }
     } else {
-      list.add(widget.product);
+      wishlistNotifier.value = [...prevList, widget.product];
+      setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${widget.product.name} added to wishlist'),
           duration: const Duration(seconds: 1),
         ),
       );
+      if (widget.product.id.isNotEmpty) {
+        final ok = await ApiService.addWishlist(widget.product.id);
+        if (!ok && mounted) {
+          wishlistNotifier.value = prevList; // rollback
+          setState(() {});
+        }
+      }
     }
-    wishlistNotifier.value = list;
-    setState(() {});
   }
 
   void _addToCart() {
@@ -169,6 +187,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   child: Center(
                     child: ProductImage(
                       asset: p.asset,
+                      imageUrl: p.imageUrl,
                       fallback: p.icon,
                       size: 96,
                     ),
@@ -220,54 +239,64 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 ),
                 const SizedBox(height: 12),
 
-                // ── Rating & Badge & Stock ─────────────────────────────────
-                Row(
+                // ── Category & Stock Badges (Real Database Info) ───────────
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.amber.shade50,
+                        color: AppColors.fieldBg,
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.amber.shade200),
+                        border: Border.all(color: AppColors.border),
                       ),
-                      child: const Row(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.star, size: 14, color: Colors.amber),
-                          SizedBox(width: 4),
-                          Text('4.9',
-                              style: TextStyle(
-                                  fontSize: 11, fontWeight: FontWeight.w700)),
-                          SizedBox(width: 4),
-                          Text('(128 reviews)',
-                              style: TextStyle(
-                                  fontSize: 10, color: AppColors.muted)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    _StockBadge(stock: p.stock),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.lightGreen,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.verified_outlined,
+                          const Icon(Icons.category_outlined,
                               size: 13, color: AppColors.primary),
-                          SizedBox(width: 4),
-                          Text('Sanitized',
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.primaryDark)),
+                          const SizedBox(width: 4),
+                          Text(
+                            p.category,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textDark,
+                            ),
+                          ),
                         ],
                       ),
                     ),
+                    _StockBadge(stock: p.stock),
+                    if (p.isSpecialOffer)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.amber.shade300),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.local_offer_outlined,
+                                size: 12, color: Colors.amber),
+                            SizedBox(width: 4),
+                            Text(
+                              'Special Offer',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFFB78103),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
                 const Divider(height: 28),
@@ -372,46 +401,29 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 ),
                 const Divider(height: 28),
 
-                // ── Features Grid ──────────────────────────────────────────
-                const Text('Specifications',
-                    style:
-                        TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 10),
-                const Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _FeatureChip(Icons.shield_outlined, 'Waterproof 3000mm'),
-                    _FeatureChip(Icons.nature_people_outlined, 'Wind Resistant'),
-                    _FeatureChip(Icons.cleaning_services_outlined, 'Pre-Cleaned'),
-                    _FeatureChip(Icons.backpack_outlined, 'Compact Carry Case'),
-                  ],
-                ),
-                const SizedBox(height: 18),
-
-                // ── Description ────────────────────────────────────────────
+                // ── Description (From Database) ────────────────────────────
                 const Text('Description',
                     style:
                         TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 6),
                 Text(
-                  p.description.isNotEmpty
-                      ? p.description
-                      : 'Premium quality ${p.name.toLowerCase()} suitable for hiking, camping, and outdoor exploration. Lightweight, durable, and crafted to provide optimal comfort and protection under various outdoor conditions. Every rental item is thoroughly inspected and sanitized before dispatch.',
+                  p.description.trim().isNotEmpty
+                      ? p.description.trim()
+                      : 'Tidak ada deskripsi tambahan untuk produk ini.',
                   style: const TextStyle(
                       fontSize: 11, height: 1.5, color: AppColors.muted),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
 
-                // ── Included items checklist ───────────────────────────────
-                const Text('What\'s Included',
+                // ── Detail Informasi Produk (From Database) ────────────────
+                const Text('Detail Barang',
                     style:
                         TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                const _ChecklistRow('Full equipment kit & accessories'),
-                const _ChecklistRow('Waterproof storage bag'),
-                const _ChecklistRow('Setup guide manual'),
-                const _ChecklistRow('Free replacement warranty during rental'),
+                _ChecklistRow('Kategori: ${p.category}'),
+                if (p.sub.isNotEmpty) _ChecklistRow('Varian / Model: ${p.sub}'),
+                _ChecklistRow('Stok Tersedia: ${p.stock} unit'),
+                _ChecklistRow('Harga Sewa: ${rupiah(p.price)} / hari'),
               ],
             ),
           ),

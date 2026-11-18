@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import '../data.dart';
+import '../services/api_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common_widgets.dart';
 import 'payment_methods_page.dart';
 import 'payment_page.dart';
 
-enum DeliveryMethod {
-  pickup,
-  delivery,
-}
+enum DeliveryMethod { pickup, delivery }
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key});
@@ -19,18 +17,106 @@ class CheckoutPage extends StatefulWidget {
 
 class _CheckoutPageState extends State<CheckoutPage> {
   DeliveryMethod _selectedMethod = DeliveryMethod.pickup;
-  static const int _deliveryFeeAmount = 20000;
+  bool _isCalculating = true;
+  bool _isPlacingOrder = false;
+  int? _serverSubtotal;
+  int? _serverDeliveryFee;
+  int? _serverTotal;
+  String? _quoteError;
+  String? _deliveryAddress;
 
-  int get _deliveryFee =>
-      _selectedMethod == DeliveryMethod.delivery ? _deliveryFeeAmount : 0;
+  @override
+  void initState() {
+    super.initState();
+    _recalculate();
+    if (ApiService.isAuthenticated) {
+      ApiService.getProfile().then((profile) {
+        if (!mounted) return;
+        setState(() {
+          _deliveryAddress = profile?['address'] as String?;
+        });
+      });
+    }
+  }
+
+  Future<void> _recalculate() async {
+    if (mounted) {
+      setState(() {
+        _isCalculating = true;
+        _quoteError = null;
+      });
+    }
+    final quote = await ApiService.calculateCheckout(
+      items: cartNotifier.value,
+      deliveryMethod: _selectedMethod.name,
+    );
+    if (!mounted) return;
+    setState(() {
+      _isCalculating = false;
+      _serverSubtotal = (quote?['subtotal'] as num?)?.toInt();
+      _serverDeliveryFee = (quote?['deliveryFee'] as num?)?.toInt();
+      _serverTotal = (quote?['total'] as num?)?.toInt();
+      _quoteError = quote == null ? ApiService.lastError : null;
+    });
+  }
+
+  Future<void> _placeOrder() async {
+    if (!ApiService.isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Silakan login untuk membuat pesanan.')),
+      );
+      return;
+    }
+
+    setState(() => _isPlacingOrder = true);
+    final result = await ApiService.createOrder(
+      items: cartNotifier.value,
+      deliveryMethod: _selectedMethod.name,
+      paymentMethod: selectedPaymentMethod.value,
+      deliveryAddress: _deliveryAddress,
+    );
+    if (!mounted) return;
+    setState(() => _isPlacingOrder = false);
+
+    if (result['success'] != true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result['message'] as String? ?? 'Pesanan gagal dibuat.',
+          ),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+      return;
+    }
+
+    final order = result['data'] as Map<String, dynamic>;
+    final orderId = order['id'] as String;
+    final total = (order['total'] as num).toInt();
+    ordersNotifier.value = [
+      AppOrder.fromJson(order),
+      ...ordersNotifier.value.where((item) => item.id != orderId),
+    ];
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PaymentPage(
+          total: total,
+          orderId: orderId,
+          paymentMethod: selectedPaymentMethod.value,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Checkout',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+        title: const Text(
+          'Checkout',
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.chevron_left, size: 22),
           onPressed: () => Navigator.of(context).maybePop(),
@@ -42,9 +128,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
           if (items.isEmpty) {
             return const Center(child: Text('Your cart is empty'));
           }
-          final subtotal =
-              items.fold<int>(0, (s, e) => s + e.unitPrice * e.qty);
-          final grandTotal = subtotal + _deliveryFee;
+          final subtotal = _serverSubtotal;
+          final deliveryFee = _serverDeliveryFee;
+          final grandTotal = _serverTotal;
 
           return Column(
             children: [
@@ -73,6 +159,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                               setState(() {
                                 _selectedMethod = DeliveryMethod.pickup;
                               });
+                              _recalculate();
                             },
                           ),
                           const SizedBox(height: 10),
@@ -81,13 +168,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 _selectedMethod == DeliveryMethod.delivery,
                             icon: Icons.local_shipping_outlined,
                             title: 'Delivery',
-                            subtitle: 'Jl. Campy No. 1, Jakarta Selatan',
-                            feeBadge: '+${rupiah(_deliveryFeeAmount)}',
+                            subtitle: (_deliveryAddress != null &&
+                                    _deliveryAddress!.isNotEmpty)
+                                ? _deliveryAddress!
+                                : 'Dikirim ke alamat profil akun Anda',
+                            feeBadge: '+${rupiah(20000)}',
                             isFree: false,
                             onTap: () {
                               setState(() {
                                 _selectedMethod = DeliveryMethod.delivery;
                               });
+                              _recalculate();
                             },
                           ),
                         ],
@@ -117,20 +208,31 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: const Center(
-                                child: Text('BCA',
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 8,
-                                        fontWeight: FontWeight.w700)),
+                                child: Text(
+                                  'BCA',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 10),
-                            const Expanded(
-                              child: Text('BCA Transfer',
-                                  style: TextStyle(fontSize: 12)),
+                            Expanded(
+                              child: ValueListenableBuilder<String>(
+                                valueListenable: selectedPaymentMethod,
+                                builder: (context, method, _) => Text(
+                                  '$method Transfer',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
                             ),
-                            const Icon(Icons.chevron_right,
-                                size: 16, color: AppColors.muted),
+                            const Icon(
+                              Icons.chevron_right,
+                              size: 16,
+                              color: AppColors.muted,
+                            ),
                           ],
                         ),
                       ),
@@ -151,28 +253,43 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Subtotal',
-                            style: TextStyle(
-                                fontSize: 11, color: AppColors.muted)),
-                        Text(rupiah(subtotal),
-                            style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500)),
+                        const Text(
+                          'Subtotal',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.muted,
+                          ),
+                        ),
+                        Text(
+                          subtotal == null ? '...' : rupiah(subtotal),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Delivery Fee',
-                            style: TextStyle(
-                                fontSize: 11, color: AppColors.muted)),
+                        const Text(
+                          'Delivery Fee',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.muted,
+                          ),
+                        ),
                         Text(
-                          _deliveryFee == 0 ? 'Free' : rupiah(_deliveryFee),
+                          deliveryFee == null
+                              ? '...'
+                              : (deliveryFee == 0
+                                    ? 'Free'
+                                    : rupiah(deliveryFee)),
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: _deliveryFee == 0
+                            color: deliveryFee == 0
                                 ? AppColors.primary
                                 : AppColors.textDark,
                           ),
@@ -186,14 +303,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Total',
-                            style: TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.w600)),
-                        Text(rupiah(grandTotal),
-                            style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primary)),
+                        const Text(
+                          'Total',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          grandTotal == null ? '...' : rupiah(grandTotal),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -201,24 +325,48 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       width: double.infinity,
                       height: 44,
                       child: ElevatedButton(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                              builder: (_) => PaymentPage(total: grandTotal)),
-                        ),
+                        onPressed:
+                            _isCalculating ||
+                                _isPlacingOrder ||
+                                grandTotal == null
+                            ? null
+                            : _placeOrder,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
-                        child: const Text('Pay',
-                            style: TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.w600)),
+                        child: _isPlacingOrder
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                _isCalculating ? 'Calculating...' : 'Pay',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                       ),
                     ),
                   ],
                 ),
               ),
+              if (_quoteError != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                  child: Text(
+                    'Gagal menghitung checkout: $_quoteError',
+                    style: TextStyle(color: Colors.red.shade700, fontSize: 11),
+                  ),
+                ),
             ],
           );
         },
@@ -262,21 +410,28 @@ class _CheckoutItem extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.product.name,
-                    style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w600)),
-                Text(item.product.sub,
-                    style: const TextStyle(
-                        fontSize: 10, color: AppColors.muted)),
-                Text('Qty: ${item.qty}',
-                    style: const TextStyle(
-                        fontSize: 10, color: AppColors.muted)),
+                Text(
+                  item.product.name,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  item.product.sub,
+                  style: const TextStyle(fontSize: 10, color: AppColors.muted),
+                ),
+                Text(
+                  'Qty: ${item.qty}',
+                  style: const TextStyle(fontSize: 10, color: AppColors.muted),
+                ),
               ],
             ),
           ),
-          Text(rupiah(item.unitPrice * item.qty),
-              style: const TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w700)),
+          Text(
+            rupiah(item.unitPrice * item.qty),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
         ],
       ),
     );
@@ -301,11 +456,14 @@ class _SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 10,
-                  color: AppColors.muted,
-                  fontWeight: FontWeight.w500)),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 10,
+              color: AppColors.muted,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           const SizedBox(height: 8),
           child,
         ],
@@ -365,9 +523,11 @@ class _DeliveryOptionTile extends StatelessWidget {
                 color: isSelected ? AppColors.primary : AppColors.muted,
               ),
               const SizedBox(width: 8),
-              Icon(icon,
-                  size: 20,
-                  color: isSelected ? AppColors.primary : AppColors.muted),
+              Icon(
+                icon,
+                size: 20,
+                color: isSelected ? AppColors.primary : AppColors.muted,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -377,8 +537,9 @@ class _DeliveryOptionTile extends StatelessWidget {
                       title,
                       style: TextStyle(
                         fontSize: 12,
-                        fontWeight:
-                            isSelected ? FontWeight.w700 : FontWeight.w600,
+                        fontWeight: isSelected
+                            ? FontWeight.w700
+                            : FontWeight.w600,
                         color: AppColors.textDark,
                       ),
                     ),
@@ -386,20 +547,21 @@ class _DeliveryOptionTile extends StatelessWidget {
                     Text(
                       subtitle,
                       style: const TextStyle(
-                          fontSize: 10, color: AppColors.muted),
+                        fontSize: 10,
+                        color: AppColors.muted,
+                      ),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: isFree
                       ? Colors.green.withValues(alpha: 0.1)
                       : (isSelected
-                          ? AppColors.primary.withValues(alpha: 0.15)
-                          : AppColors.fieldBg),
+                            ? AppColors.primary.withValues(alpha: 0.15)
+                            : AppColors.fieldBg),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -410,8 +572,8 @@ class _DeliveryOptionTile extends StatelessWidget {
                     color: isFree
                         ? Colors.green.shade700
                         : (isSelected
-                            ? AppColors.primaryDark
-                            : AppColors.textDark),
+                              ? AppColors.primaryDark
+                              : AppColors.textDark),
                   ),
                 ),
               ),

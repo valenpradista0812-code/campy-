@@ -15,13 +15,14 @@ class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = 'All';
 
-  final List<String> _categories = const [
-    'All',
-    'Shelter',
-    'Kitchen',
-    'Lighting',
-    'Apparel',
-  ];
+  List<String> get _categories => [
+        'All',
+        ...{
+          ...allProducts
+              .map((p) => p.category.trim())
+              .where((c) => c.isNotEmpty)
+        }
+      ];
 
   @override
   void dispose() {
@@ -31,22 +32,19 @@ class _SearchPageState extends State<SearchPage> {
 
   List<Product> _filterProducts() {
     final query = _searchController.text.trim().toLowerCase();
+
     return allProducts.where((p) {
-      // Category filter
-      if (_selectedCategory == 'Shelter') {
-        if (!shelterItems.any((item) => item.name == p.name)) return false;
-      } else if (_selectedCategory == 'Kitchen') {
-        if (!kitchenItems.any((item) => item.name == p.name)) return false;
-      } else if (_selectedCategory == 'Lighting') {
-        if (!lightingItems.any((item) => item.name == p.name)) return false;
-      } else if (_selectedCategory == 'Apparel') {
-        if (!apparelItems.any((item) => item.name == p.name)) return false;
+      if (_selectedCategory != 'All' &&
+          p.category.toLowerCase() != _selectedCategory.toLowerCase()) {
+        return false;
       }
 
       // Query filter
       if (query.isEmpty) return true;
       return p.name.toLowerCase().contains(query) ||
-          p.sub.toLowerCase().contains(query);
+          p.sub.toLowerCase().contains(query) ||
+          p.category.toLowerCase().contains(query) ||
+          p.description.toLowerCase().contains(query);
     }).toList();
   }
 
@@ -65,8 +63,7 @@ class _SearchPageState extends State<SearchPage> {
           style: const TextStyle(fontSize: 13),
           decoration: InputDecoration(
             hintText: 'Search tents, bags, stoves...',
-            hintStyle:
-                const TextStyle(fontSize: 12, color: AppColors.muted),
+            hintStyle: const TextStyle(fontSize: 12, color: AppColors.muted),
             border: InputBorder.none,
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
@@ -100,8 +97,9 @@ class _SearchPageState extends State<SearchPage> {
                     label: Text(cat),
                     labelStyle: TextStyle(
                       fontSize: 11,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.w400,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w400,
                       color: isSelected ? Colors.white : AppColors.textDark,
                     ),
                     backgroundColor: AppColors.fieldBg,
@@ -137,9 +135,10 @@ class _SearchPageState extends State<SearchPage> {
                 Text(
                   'Results (${results.length})',
                   style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.muted),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.muted,
+                  ),
                 ),
               ],
             ),
@@ -152,19 +151,26 @@ class _SearchPageState extends State<SearchPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.search_off_outlined,
-                            size: 48, color: AppColors.muted),
+                        Icon(
+                          Icons.search_off_outlined,
+                          size: 48,
+                          color: AppColors.muted,
+                        ),
                         const SizedBox(height: 10),
                         const Text(
                           'No products found',
                           style: TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w600),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         const Text(
                           'Try searching with other keywords or categories.',
-                          style:
-                              TextStyle(fontSize: 11, color: AppColors.muted),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.muted,
+                          ),
                         ),
                       ],
                     ),
@@ -178,8 +184,7 @@ class _SearchPageState extends State<SearchPage> {
                       return InkWell(
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) =>
-                                ProductDetailPage(product: product),
+                            builder: (_) => ProductDetailPage(product: product),
                           ),
                         ),
                         borderRadius: BorderRadius.circular(10),
@@ -200,6 +205,7 @@ class _SearchPageState extends State<SearchPage> {
                                 ),
                                 child: ProductImage(
                                   asset: product.asset,
+                                  imageUrl: product.imageUrl,
                                   fallback: product.icon,
                                   size: 38,
                                 ),
@@ -212,15 +218,17 @@ class _SearchPageState extends State<SearchPage> {
                                     Text(
                                       product.name,
                                       style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       product.sub,
                                       style: const TextStyle(
-                                          fontSize: 10,
-                                          color: AppColors.muted),
+                                        fontSize: 10,
+                                        color: AppColors.muted,
+                                      ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
@@ -235,25 +243,30 @@ class _SearchPageState extends State<SearchPage> {
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.add_shopping_cart,
-                                    size: 18, color: AppColors.primary),
+                                icon: const Icon(
+                                  Icons.add_shopping_cart,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
                                 onPressed: () {
                                   final cart = [...cartNotifier.value];
-                                  final idx = cart.indexWhere((e) =>
-                                      e.product.name == product.name);
+                                  final idx = cart.indexWhere(
+                                    (e) => e.product.name == product.name,
+                                  );
                                   if (idx >= 0) {
                                     cart[idx].qty++;
                                   } else {
-                                    cart.add(CartItem(
-                                        product, 1, product.price));
+                                    cart.add(
+                                      CartItem(product, 1, product.price),
+                                    );
                                   }
                                   cartNotifier.value = cart;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                          '${product.name} added to cart'),
-                                      duration:
-                                          const Duration(seconds: 1),
+                                        '${product.name} added to cart',
+                                      ),
+                                      duration: const Duration(seconds: 1),
                                     ),
                                   );
                                 },
@@ -270,4 +283,3 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 }
-

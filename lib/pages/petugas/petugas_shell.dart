@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../staff_data.dart';
 import '../../widgets/staff_widgets.dart';
 import 'petugas_add_item_page.dart';
 import 'petugas_home_page.dart';
@@ -22,11 +21,7 @@ class _PetugasShellState extends State<PetugasShell> {
           index: _index,
           children: const [
             PetugasHomePage(),
-            StaffProfileView(
-              name: kPetugasName,
-              email: kPetugasEmail,
-              role: 'Petugas',
-            ),
+            StaffProfileView(name: '', email: '', role: 'Petugas'),
           ],
         ),
       ),
@@ -34,9 +29,9 @@ class _PetugasShellState extends State<PetugasShell> {
         index: _index,
         onTab: (i) => setState(() => _index = i),
         centerLabel: 'Add Item',
-        onCenter: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const PetugasAddItemPage()),
-        ),
+        onCenter: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const PetugasAddItemPage())),
       ),
     );
   }

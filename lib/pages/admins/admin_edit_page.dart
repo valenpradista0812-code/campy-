@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../services/api_service.dart';
 import '../../staff_data.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common_widgets.dart';
 import '../../widgets/staff_widgets.dart';
 
-/// Admin Settings: ubah data admin yang dipilih dari daftar.
+/// Staff Settings: ubah data admin atau petugas yang dipilih dari daftar.
 class AdminEditPage extends StatefulWidget {
   final AdminUser admin;
   const AdminEditPage({super.key, required this.admin});
@@ -19,6 +20,7 @@ class _AdminEditPageState extends State<AdminEditPage> {
   late final _emailC = TextEditingController(text: widget.admin.email);
   late final _detailC = TextEditingController(text: widget.admin.detail);
   late final _locationC = TextEditingController(text: widget.admin.location);
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -29,82 +31,112 @@ class _AdminEditPageState extends State<AdminEditPage> {
     super.dispose();
   }
 
-  void _save() {
+  void _save() async {
     if (!_formKey.currentState!.validate()) return;
-    final updated = widget.admin.copyWith(
-      username: _nameC.text.trim(),
-      email: _emailC.text.trim(),
-      detail: _detailC.text.trim(),
-      location: _locationC.text.trim(),
-    );
-    adminsNotifier.value = [
-      for (final a in adminsNotifier.value) a.id == updated.id ? updated : a,
-    ];
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Admin updated')),
-    );
+    setState(() => _isLoading = true);
+
+    final isPetugas = widget.admin.role == 'petugas';
+
+    try {
+      final success = isPetugas
+          ? await ApiService.updatePetugas(
+              id: widget.admin.id,
+              username: _nameC.text.trim(),
+              email: _emailC.text.trim(),
+              detail: _detailC.text.trim(),
+              location: _locationC.text.trim(),
+            )
+          : await ApiService.updateAdmin(
+              id: widget.admin.id,
+              username: _nameC.text.trim(),
+              email: _emailC.text.trim(),
+              detail: _detailC.text.trim(),
+              location: _locationC.text.trim(),
+            );
+
+      if (!mounted) return;
+
+      if (success) {
+        if (isPetugas) {
+          ApiService.getPetugasList().then((list) {
+            petugasNotifier.value = list;
+          });
+        } else {
+          ApiService.getAdmins().then((list) {
+            adminsNotifier.value = list;
+          });
+        }
+
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Data ${isPetugas ? "petugas" : "admin"} berhasil diperbarui',
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              ApiService.lastError ??
+                  'Gagal memperbarui data ${isPetugas ? "petugas" : "admin"}',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final admin = widget.admin;
+    final roleName = widget.admin.role == 'petugas' ? 'Petugas' : 'Admin';
+
     return Scaffold(
-      appBar: staffFormAppBar(context, 'Admin Settings'),
+      appBar: staffFormAppBar(context, '$roleName Settings'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         child: Form(
           key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    radius: 36,
-                    backgroundColor: AppColors.lightGreen,
-                    child: const Icon(Icons.person,
-                        size: 44, color: AppColors.primary),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(admin.username,
-                            style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primaryDark)),
-                        const SizedBox(height: 4),
-                        const Text('Details',
-                            style: TextStyle(
-                                fontSize: 10, fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 2),
-                        Text(
-                          admin.detail.isEmpty ? '-' : admin.detail,
-                          style: const TextStyle(
-                              fontSize: 9, color: AppColors.textGrey),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 12),
+              CircleAvatar(
+                radius: 40,
+                backgroundColor: AppColors.lightGreen,
+                child: const Icon(
+                  Icons.person,
+                  size: 48,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.admin.username,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '$roleName • ${widget.admin.email}',
+                style: const TextStyle(fontSize: 10, color: AppColors.muted),
               ),
               const SizedBox(height: 24),
               AppTextField(
-                label: 'User name',
-                hint: 'Add username',
+                label: 'Nama / Username',
                 controller: _nameC,
                 validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'User name wajib diisi'
+                    ? 'Nama wajib diisi'
                     : null,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               AppTextField(
-                label: 'User Email',
-                hint: 'Add user email',
+                label: 'Email',
                 controller: _emailC,
                 keyboardType: TextInputType.emailAddress,
                 validator: (v) {
@@ -113,25 +145,15 @@ class _AdminEditPageState extends State<AdminEditPage> {
                   return null;
                 },
               ),
-              const SizedBox(height: 14),
-              AppTextField(
-                label: 'Admin Detail',
-                hint: 'Add Admin Detail',
-                controller: _detailC,
-              ),
-              const SizedBox(height: 14),
-              AppTextField(
-                label: 'User Location',
-                hint: 'Add user Location',
-                controller: _locationC,
-                trailingIcon: Icons.open_in_new,
-              ),
-              const SizedBox(height: 28),
-              Center(
-                child: SizedBox(
-                  width: 190,
-                  child: PrimaryButton(text: 'Save', onPressed: _save),
-                ),
+              const SizedBox(height: 12),
+              AppTextField(label: 'Detail Tugas', controller: _detailC),
+              const SizedBox(height: 12),
+              AppTextField(label: 'Location Toko', controller: _locationC),
+              const SizedBox(height: 24),
+              PrimaryButton(
+                text: 'Simpan Perubahan',
+                isLoading: _isLoading,
+                onPressed: _save,
               ),
             ],
           ),

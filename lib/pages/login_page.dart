@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import '../data.dart';
 import '../services/api_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common_widgets.dart';
+import 'admins/admin_login_page.dart';
+import 'admins/admin_shell.dart';
+import 'admins/super_admin_register_page.dart';
 import 'forgot_password_page.dart';
 import 'main_shell.dart';
-import 'admins/admin_login_page.dart';
 import 'petugas/petugas_login_page.dart';
+import 'petugas/petugas_shell.dart';
 import 'signup_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -35,40 +39,50 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final isOnline = await ApiService.isBackendConnected();
-      if (isOnline) {
-        final res = await ApiService.login(
-          _emailC.text.trim(),
-          _passC.text.trim(),
-        );
+      if (!isOnline) {
         if (!mounted) return;
-        if (res['success'] == true) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Login berhasil via Supabase Backend!')),
-          );
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const MainShell()),
-          );
-          return;
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(res['message'] ?? 'Login gagal')),
-          );
-          return;
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Server backend offline (${ApiService.baseUrl}). Pastikan backend sedang berjalan.',
+            ),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+        return;
       }
 
+      final res = await ApiService.login(
+        _emailC.text.trim(),
+        _passC.text.trim(),
+      );
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '⚠️ Backend offline (${ApiService.baseUrl}). Masuk Mode Demo.',
+
+      if (res['success'] == true) {
+        wishlistNotifier.value = await ApiService.getWishlist();
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Login berhasil!')));
+        final role = ApiService.currentUserRole;
+        final destination = role == 'admin'
+            ? const AdminShell()
+            : role == 'petugas'
+            ? const PetugasShell()
+            : const MainShell();
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => destination));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res['message'] ?? 'Login gagal.'),
+            backgroundColor: Colors.red.shade700,
           ),
-          duration: const Duration(seconds: 4),
-        ),
-      );
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainShell()),
-      );
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -96,7 +110,9 @@ class _LoginPageState extends State<LoginPage> {
                   controller: _emailC,
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Email wajib diisi';
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Email wajib diisi';
+                    }
                     if (!v.contains('@')) return 'Email tidak valid';
                     return null;
                   },
@@ -107,20 +123,21 @@ class _LoginPageState extends State<LoginPage> {
                   hint: '••••••••',
                   controller: _passC,
                   isPassword: true,
-                  validator: (v) => (v == null || v.length < 6)
-                      ? 'Minimal 6 karakter'
-                      : null,
+                  validator: (v) =>
+                      (v == null || v.length < 6) ? 'Minimal 6 karakter' : null,
                 ),
                 Align(
                   alignment: Alignment.center,
                   child: TextButton(
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                          builder: (_) => const ForgotPasswordPage()),
+                        builder: (_) => const ForgotPasswordPage(),
+                      ),
                     ),
-                    child: const Text('Forgot Password?',
-                        style: TextStyle(
-                            fontSize: 11, color: AppColors.primary)),
+                    child: const Text(
+                      'Forgot Password?',
+                      style: TextStyle(fontSize: 11, color: AppColors.primary),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -143,25 +160,51 @@ class _LoginPageState extends State<LoginPage> {
                     TextButton(
                       onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute(
-                            builder: (_) => const AdminLoginPage()),
+                          builder: (_) => const AdminLoginPage(),
+                        ),
                       ),
-                      child: const Text('Login as Admin',
-                          style: TextStyle(
-                              fontSize: 11, color: AppColors.primary)),
+                      child: const Text(
+                        'Login as Admin',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ),
-                    const Text('|',
-                        style:
-                            TextStyle(fontSize: 11, color: AppColors.muted)),
+                    const Text(
+                      '|',
+                      style: TextStyle(fontSize: 11, color: AppColors.muted),
+                    ),
                     TextButton(
                       onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute(
-                            builder: (_) => const PetugasLoginPage()),
+                          builder: (_) => const PetugasLoginPage(),
+                        ),
                       ),
-                      child: const Text('Login as Petugas',
-                          style: TextStyle(
-                              fontSize: 11, color: AppColors.primary)),
+                      child: const Text(
+                        'Login as Petugas',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ),
                   ],
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const SuperAdminRegisterPage(),
+                    ),
+                  ),
+                  child: const Text(
+                    'Daftar Akun Super Admin',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primaryDark,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
               ],
